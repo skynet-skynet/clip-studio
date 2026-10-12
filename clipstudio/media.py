@@ -42,7 +42,7 @@ def ffmpeg_status() -> dict:
     try:
         out = subprocess.run([path, "-version"], capture_output=True, text=True, timeout=10).stdout
         first = out.splitlines()[0] if out else "ffmpeg"
-        return {"ready": True, "message": " ".join(first.split()[:3])}
+        return {"ready": True, "message": " ".join(first.split()[:3]), "path": path}
     except Exception as e:  # noqa: BLE001
         return {"ready": False, "message": f"ffmpeg не запускается: {e}"}
 

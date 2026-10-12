@@ -50,14 +50,26 @@ jobs:
           Remove-Item packaging/ffmpeg/ffplay.exe -ErrorAction SilentlyContinue
       - name: Сборка
         run: pyinstaller packaging/clipstudio.spec --noconfirm
-      - name: Проверка запуска
+      - name: Проверка запуска и нарезки на Windows
         shell: pwsh
         run: |
-          $out = & dist/ClipStudio/ClipStudio.exe status
-          $out | Write-Output
-          if (-not ($out -match '"ready": true')) { throw "status не ответил" }
-          Remove-Item dist/ClipStudio/config.yaml, dist/ClipStudio/sources.yaml, dist/ClipStudio/.env -ErrorAction SilentlyContinue
-          Remove-Item dist/ClipStudio/data -Recurse -ErrorAction SilentlyContinue
+          Set-Location dist/ClipStudio
+          $status = & ./ClipStudio.exe status | Out-String
+          $status | Write-Output
+          if (-not ($status -match '_internal')) { Write-Output "внимание: ffmpeg не из сборки" }
+          & ./_internal/ffmpeg/ffmpeg.exe -hide_banner -loglevel error -f lavfi -i testsrc2=size=640x360:rate=25:duration=20 -f lavfi -i sine=frequency=440:duration=20 -c:v libx264 -c:a aac -shortest test.mp4
+          "1`n00:00:01,000 --> 00:00:04,000`nПроверка субтитров на Windows`n`n2`n00:00:06,000 --> 00:00:09,000`nВторая фраза после паузы`n" | Out-File -Encoding utf8 test.srt
+          & ./ClipStudio.exe import test.mp4 --source me --subs test.srt
+          & ./ClipStudio.exe cut 1 0.5 10 --title "Тест" --hook "ПРОВЕРКА" --jumpcut
+          if (-not (Test-Path data/clips/1.mp4)) { throw "клип не создан" }
+          & ./ClipStudio.exe export 1 --format edl
+          Remove-Item test.mp4, test.srt, config.yaml, sources.yaml, .env -ErrorAction SilentlyContinue
+          Remove-Item data -Recurse -ErrorAction SilentlyContinue
+      - name: Методичка и README в архив
+        shell: pwsh
+        run: |
+          Copy-Item docs/manual.html dist/ClipStudio/Metodichka-ClipStudio.html
+          Copy-Item packaging/README.txt dist/ClipStudio/README.txt
       - name: Архив
         shell: pwsh
         run: Compress-Archive -Path dist/ClipStudio -DestinationPath ClipStudio-windows.zip

@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Методичка Clip Studio</title>
+<style>
+@font-face {
+  font-family: "Clip Display";
+  src: url("/fonts/Montserrat-ExtraBold.ttf") format("truetype"), url("../fonts/Montserrat-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-display: swap;
+}
+:root {
+  --paper: #f2f3f5; --surface: #ffffff; --sunken: #e8eaee; --ink: #1d2230; --ink-2: #4a5163; --ink-3: #7a8193;
+  --line: #d5d8de; --marker: #ffe14d; --marker-ink: #1d2230; --cut: #c8343a; --go: #1b8a57; --focus: #2f6fed;
+  --display: "Clip Display", "Montserrat", "Segoe UI", system-ui, sans-serif;
+  --body: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #161922; --surface: #1f2330; --sunken: #262b39; --ink: #e9ebf0; --ink-2: #b7bccb; --ink-3: #8a90a2;
+    --line: #343a4b; --cut: #ff6b70; --go: #3ccf8a; --focus: #7aa2ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #161922; --surface: #1f2330; --sunken: #262b39; --ink: #e9ebf0; --ink-2: #b7bccb; --ink-3: #8a90a2;
+  --line: #343a4b; --cut: #ff6b70; --go: #3ccf8a; --focus: #7aa2ff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 var(--body); -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration-color: var(--marker); text-decoration-thickness: 3px; text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
+nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 28px 16px 40px 20px; border-right: 1px solid var(--line); }
+.brand { font-family: var(--display); font-size: 20px; line-height: 1.1; margin-bottom: 22px; }
+.brand mark { background: var(--marker); color: var(--marker-ink); padding: 0 4px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+nav.toc li { counter-increment: s; }
+nav.toc a { display: grid; grid-template-columns: 26px 1fr; padding: 5px 8px; border-radius: 6px; text-decoration: none; color: var(--ink-2); font-size: 14px; line-height: 1.35; }
+nav.toc a::before { content: counter(s); font: 12px var(--mono); color: var(--ink-3); padding-top: 2px; }
+nav.toc a:hover { background: var(--sunken); color: var(--ink); }
+nav.toc a.active { background: var(--ink); color: var(--paper); }
+nav.toc a.active::before { color: var(--marker); }
+.theme { margin-top: 20px; border: 1px solid var(--line); background: none; border-radius: 6px; padding: 4px 10px; color: var(--ink-2); cursor: pointer; font: 13px var(--body); }
+
+main { padding: 40px clamp(18px, 5vw, 64px) 120px; min-width: 0; }
+.wrap { max-width: 760px; }
+header.hero { margin-bottom: 48px; }
+header.hero h1 { font-family: var(--display); font-size: clamp(34px, 5vw, 56px); line-height: 1.02; margin: 0 0 18px; letter-spacing: -0.015em; }
+header.hero h1 span { background: linear-gradient(transparent 55%, var(--marker) 55%, var(--marker) 92%, transparent 92%); }
+header.hero p { font-size: 19px; color: var(--ink-2); margin: 0 0 12px; max-width: 62ch; }
+.meta { font-size: 14px; color: var(--ink-3); }
+
+section { padding-top: 28px; margin-top: 28px; border-top: 1px solid var(--line); }
+section > h2 { font-family: var(--display); font-size: clamp(24px, 3vw, 32px); line-height: 1.15; margin: 0 0 14px; }
+h3 { font-size: 19px; margin: 30px 0 8px; }
+h4 { font-size: 16px; margin: 20px 0 6px; }
+p, li { max-width: 72ch; }
+ul, ol { padding-left: 22px; }
+li { margin-bottom: 6px; }
+strong { font-weight: 700; }
+mark.hl { background: linear-gradient(transparent 40%, var(--marker) 40%, var(--marker) 90%, transparent 90%); color: inherit; padding: 0 2px; }
+
+.steps { list-style: none; padding: 0; counter-reset: st; display: grid; gap: 10px; }
+.steps > li { counter-increment: st; display: grid; grid-template-columns: 44px 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; max-width: none; margin: 0; }
+.steps > li::before { content: counter(st); font-family: var(--display); font-size: 22px; line-height: 1; width: 36px; height: 36px; display: grid; place-items: center; background: var(--marker); color: var(--marker-ink); border-radius: 50%; }
+.steps > li p { margin: 2px 0 0; color: var(--ink-2); }
+.steps > li b { display: block; }
+
+code { font: 14px var(--mono); background: var(--sunken); padding: 1px 6px; border-radius: 4px; }
+.cmd { position: relative; margin: 10px 0 14px; }
+.cmd pre { margin: 0; background: var(--ink); color: var(--paper); padding: 14px 16px; padding-right: 96px; border-radius: 8px; overflow-x: auto; font: 14px/1.55 var(--mono); }
+:root[data-theme="dark"] .cmd pre { background: #0d1017; color: #e9ebf0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cmd pre { background: #0d1017; color: #e9ebf0; } }
+.cmd button { position: absolute; top: 8px; right: 8px; border: 0; background: var(--marker); color: var(--marker-ink); font: 600 12px var(--body); padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 12px 0 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--ink-2); font-weight: 600; background: var(--sunken); }
+tr:last-child td { border-bottom: 0; }
+.tw { overflow-x: auto; }
+
+.note { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--marker); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+.note.stop { border-left-color: var(--cut); }
+.note.ok { border-left-color: var(--go); }
+.note p { margin: 4px 0; }
+.note > b:first-child { display: block; }
+
+kbd { display: inline-block; min-width: 26px; text-align: center; font: 600 13px var(--mono); padding: 2px 7px; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 6px; background: var(--surface); }
+
+.mentors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.mentor { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.mentor h4 { margin: 0 0 6px; font-family: var(--display); font-size: 17px; }
+.mentor ul { margin: 0; padding-left: 18px; font-size: 15px; }
+.mentor .role { font-size: 13px; color: var(--ink-3); margin: -2px 0 8px; }
+
+.checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.checklist input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--go); flex: none; }
+.checklist input:checked + span { color: var(--ink-3); text-decoration: line-through; }
+.check-actions { font-size: 14px; color: var(--ink-3); margin-top: 8px; }
+.check-actions button { border: 0; background: none; color: var(--ink-2); text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+
+figure.flow { margin: 18px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+figure.flow svg { width: 100%; height: auto; display: block; }
+figure.flow figcaption { font-size: 14px; color: var(--ink-3); margin-top: 8px; }
+.fl-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.fl-box.hl { fill: var(--marker); stroke: var(--marker); }
+.fl-box.stop { stroke: var(--cut); stroke-width: 2; }
+.fl-t { font: 600 13px var(--body); fill: var(--ink); }
+.fl-s { font: 12px var(--body); fill: var(--ink-3); }
+.fl-t.dark { fill: #1d2230; }
+.fl-s.dark { fill: #4a5163; }
+.fl-a { stroke: var(--ink-3); stroke-width: 1.5; fill: none; marker-end: url(#arr); }
+
+.tools { display: grid; gap: 8px; }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.tool .n { font-weight: 700; }
+.tool .n a { text-decoration-thickness: 2px; }
+.tool .v { font-size: 13px; color: var(--ink-3); text-align: right; white-space: nowrap; }
+.tool p { grid-column: 1 / -1; margin: 0; font-size: 15px; color: var(--ink-2); }
+.tag { display: inline-block; font-size: 12px; padding: 0 8px; border-radius: 999px; background: var(--sunken); color: var(--ink-2); margin-left: 6px; font-weight: 500; }
+.tag.use { background: var(--go); color: #fff; }
+
+.letter { background: var(--surface); border: 1px dashed var(--ink-3); border-radius: 10px; padding: 14px 18px; font-size: 15px; }
+
+footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 14px; }
+
+@media (max-width: 920px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  nav.toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
+  nav.toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+  nav.toc a { grid-template-columns: auto; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; }
+  nav.toc a::before { display: none; }
+  .mentors { grid-template-columns: 1fr; }
+}
+@media print {
+  nav.toc, .cmd button, .theme, .check-actions { display: none !important; }
+  .layout { display: block; }
+  body { background: #fff; }
+  section { break-inside: avoid-page; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" aria-label="Содержание">
+    <div class="brand">Clip <mark>Studio</mark></div>
+    <ol>
+      <li><a href="#start">Быстрый старт</a></li>
+      <li><a href="#install">Установка</a></li>
+      <li><a href="#how">Как устроено</a></li>
+      <li><a href="#rights">Права и белый список</a></li>
+      <li><a href="#studio">Студия: поиск моментов</a></li>
+      <li><a href="#editor">Монтажный стол</a></li>
+      <li><a href="#mentors">Ремесло: советы менторов</a></li>
+      <li><a href="#claude">Claude, MCP и плагин</a></li>
+      <li><a href="#tools">Инструменты с GitHub</a></li>
+      <li><a href="#platforms">Площадки</a></li>
+      <li><a href="#money">Монетизация и закон</a></li>
+      <li><a href="#trouble">Если что-то не работает</a></li>
+      <li><a href="#files">Где что лежит</a></li>
+      <li><a href="#sources">Источники</a></li>
+    </ol>
+    <button class="theme" id="theme" type="button">Тема: авто</button>
+  </nav>
+
+  <main>
+  <div class="wrap">
+    <header class="hero">
+      <h1>Методичка <span>Clip Studio</span></h1>
+      <p>Как превращать длинные видео в короткие смешные клипы: найти моменты с помощью Claude, вырезать их с субтитрами и хуком, проверить и выложить в VK, YouTube и Telegram. Без нарушения чужих прав.</p>
+      <p class="meta">Версия 0.2 · октябрь 2026. Факты о площадках проверены на эту дату; правила меняются, ссылки на первоисточники — в конце.</p>
+    </header>
+
+    <!-- 1 -->
+    <section id="start">
+      <h2>Быстрый старт за 10 минут</h2>
+      <ol class="steps">
+        <li><div><b>Скачайте программу</b><p>Готовая сборка для Windows — архив <code>ClipStudio-windows.zip</code> в разделе Releases репозитория. Для macOS и Linux — запуск из исходников (раздел «Установка»).</p></div></li>
+        <li><div><b>Распакуйте в «Документы» и запустите ClipStudio.exe</b><p>Откроется окно интерфейса. Чёрное окно консоли не закрывайте — это сервер программы.</p></div></li>
+        <li><div><b>Подключите Claude</b><p>Установите Claude Code и войдите (подписка Pro или Max). Без него работает ручной режим через claude.ai.</p></div></li>
+        <li><div><b>Добавьте источник</b><p>«Источники и права»: для своих видео уже есть «Мои видео». Для чужих — только с письменным разрешением автора.</p></div></li>
+        <li><div><b>Загрузите видео</b><p>«Видео» → файл с компьютера (лучше с субтитрами .srt) или ссылка на разрешённый канал.</p></div></li>
+        <li><div><b>Опишите, что искать</b><p>«Студия» → например: <i>5 клипов, где он уверен в себе, а потом всё идёт не так</i>. Нажмите «Найти моменты».</p></div></li>
+        <li><div><b>Выберите и отрендерьте</b><p>Смотрите кандидатов, жмите «Взять», затем «Отрендерить». Точная правка — кнопка «В монтаж».</p></div></li>
+        <li><div><b>Разбор и публикация</b><p>«Клипы» → «Разбор менторами» → «Применить правки» → «Опубликовать» (по умолчанию приватно).</p></div></li>
+      </ol>
+    </section>
+
+    <!-- 2 -->
+    <section id="install">
+      <h2>Установка</h2>
+      <h3>Вариант А: готовая программа для Windows</h3>
+      <p>В архиве уже есть Python, все библиотеки и ffmpeg. Ничего ставить не нужно, кроме Claude Code.</p>
+      <ol>
+        <li>Откройте репозиторий на GitHub → <b>Releases</b> → скачайте <code>ClipStudio-windows.zip</code>. Свежая сборка без релиза — во вкладке <b>Actions</b> → последний запуск <i>build</i> → артефакт <i>ClipStudio-windows</i>.</li>
+        <li>Распакуйте в папку, куда можно писать, например <code>Документы\ClipStudio</code>. Не в <code>Program Files</code>: рядом с программой хранятся настройки и видео.</li>
+        <li>Запустите <code>ClipStudio.exe</code>. Если Windows SmartScreen предупредит о неизвестном издателе — «Подробнее» → «Выполнить в любом случае». Программа не подписана сертификатом.</li>
+      </ol>
+      <p>Первая транскрибация скачает модель распознавания речи (около 500 МБ для <code>small</code>) — нужен интернет.</p>
+
+      <h3>Вариант Б: из исходников (Windows, macOS, Linux)</h3>
+      <ol>
+        <li>Python 3.10+ (<a href="https://www.python.org/downloads/">python.org</a>, на Windows отметьте <i>Add python.exe to PATH</i>) и ffmpeg.</li>
+      </ol>
+      <div class="cmd"><pre>winget install Gyan.FFmpeg          # Windows
+brew install python ffmpeg          # macOS
+sudo apt install python3 python3-venv ffmpeg   # Ubuntu</pre><button type="button">Копировать</button></div>
+      <ol start="2">
+        <li>Скачайте проект (<i>Code → Download ZIP</i> или <code>git clone</code>) и запустите <code>start.bat</code> (Windows) или <code>./start.sh</code>. Первый запуск ставит зависимости.</li>
+      </ol>
+
+      <h3>Claude Code</h3>
+      <p>Нужен для автоматического поиска моментов и подключения Claude к программе. Требует подписку Pro, Max, Team или Enterprise (бесплатный план claude.ai не подходит).</p>
+      <div class="cmd"><pre>irm https://claude.ai/install.ps1 | iex           # Windows, PowerShell
+curl -fsSL https://claude.ai/install.sh | bash    # macOS, Linux</pre><button type="button">Копировать</button></div>
+      <p>После установки один раз выполните <code>claude</code> в терминале и войдите через браузер.</p>
+
+      <h3>Видеокарта</h3>
+      <p>Без видеокарты модель <code>small</code> распознаёт час видео примерно за 15–40 минут. С NVIDIA выберите в «Настройках» модель <code>large-v3</code> и устройство «Видеокарта NVIDIA» — быстрее и точнее. Самый быстрый путь — загружать видео сразу с субтитрами .srt/.vtt: распознавание не понадобится.</p>
+    </section>
+
+    <!-- 3 -->
+    <section id="how">
+      <h2>Как устроено</h2>
+      <figure class="flow">
+        <svg viewBox="0 0 760 300" role="img" aria-label="Схема: источник, юридический шлюз, транскрипт, менторы на Sonnet, кандидаты, монтаж ffmpeg, разбор на Opus, публикация">
+          <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" style="color:var(--ink-3)"/></marker></defs>
+          <rect class="fl-box" x="10" y="20" width="170" height="62" rx="10"/><text class="fl-t" x="24" y="46">Источник</text><text class="fl-s" x="24" y="66">белый список</text>
+          <rect class="fl-box stop" x="200" y="20" width="170" height="62" rx="10"/><text class="fl-t" x="214" y="46">Юридический шлюз</text><text class="fl-s" x="214" y="66">нет основания — стоп</text>
+          <rect class="fl-box" x="390" y="20" width="170" height="62" rx="10"/><text class="fl-t" x="404" y="46">Транскрипт</text><text class="fl-s" x="404" y="66">Whisper или .srt</text>
+          <rect class="fl-box hl" x="580" y="20" width="170" height="62" rx="10"/><text class="fl-t dark" x="594" y="46">Менторы</text><text class="fl-s dark" x="594" y="66">Claude Sonnet</text>
+          <path class="fl-a" d="M180 51H196"/><path class="fl-a" d="M370 51H386"/><path class="fl-a" d="M560 51H576"/>
+          <path class="fl-a" d="M665 82V120"/>
+          <rect class="fl-box" x="580" y="124" width="170" height="62" rx="10"/><text class="fl-t" x="594" y="150">Кандидаты</text><text class="fl-s" x="594" y="170">вы выбираете</text>
+          <rect class="fl-box" x="390" y="124" width="170" height="62" rx="10"/><text class="fl-t" x="404" y="150">Монтаж</text><text class="fl-s" x="404" y="170">ffmpeg, 9:16, субтитры</text>
+          <rect class="fl-box hl" x="200" y="124" width="170" height="62" rx="10"/><text class="fl-t dark" x="214" y="150">Разбор</text><text class="fl-s dark" x="214" y="170">Claude Opus</text>
+          <rect class="fl-box" x="10" y="124" width="170" height="62" rx="10"/><text class="fl-t" x="24" y="150">Публикация</text><text class="fl-s" x="24" y="170">сначала приватно</text>
+          <path class="fl-a" d="M580 155H564"/><path class="fl-a" d="M390 155H374"/><path class="fl-a" d="M200 155H184"/>
+          <rect class="fl-box" x="200" y="222" width="360" height="62" rx="10"/><text class="fl-t" x="214" y="248">Монтажный стол</text><text class="fl-s" x="214" y="268">ручная правка: таймлайн, транскрипт, метки I / O</text>
+          <path class="fl-a" d="M475 186V218"/>
+          </svg>
+        <figcaption>Жёлтым — где работает Claude. Красная рамка — точка, где без основания всё останавливается.</figcaption>
+      </figure>
+      <h3>Кто что делает: Opus и Sonnet</h3>
+      <div class="tw"><table>
+        <tr><th>Работа</th><th>Модель</th><th>Почему</th></tr>
+        <tr><td>Поиск моментов в транскрипте</td><td>Sonnet</td><td>Много текста, нужны скорость и низкая цена</td></tr>
+        <tr><td>Разбор готового клипа</td><td>Opus</td><td>Одно решение на клип, важна точность суждения</td></tr>
+        <tr><td>Точные фразы в кавычках</td><td>без модели</td><td>Нечёткий поиск по словам — бесплатно и мгновенно</td></tr>
+        <tr><td>Нарезка, субтитры, вырезание пауз</td><td>без модели</td><td>ffmpeg на вашем компьютере</td></tr>
+      </table></div>
+      <p>Модели меняются в «Настройках → Claude».</p>
+    </section>
+
+    <!-- 4 -->
+    <section id="rights">
+      <h2>Права и белый список</h2>
+      <p>Главное правило: <mark class="hl">режем только то, на что есть основание</mark>. Программа не скачает видео из источника, которого нет в белом списке, и запишет каждое решение в реестр прав.</p>
+      <div class="tw"><table>
+        <tr><th>Основание</th><th>Когда</th><th>Что хранить</th></tr>
+        <tr><td><code>own</code></td><td>Видео ваше</td><td>Ничего</td></tr>
+        <tr><td><code>permission</code></td><td>Автор письменно разрешил нарезки</td><td>Скриншот или ссылку, дату, условия (ссылка, монетизация, запретные темы)</td></tr>
+        <tr><td><code>cc-by</code></td><td>Конкретное видео под Creative Commons Attribution</td><td>Ссылку на оригинал; автор указывается в каждом клипе</td></tr>
+        <tr><td><code>public-domain</code></td><td>Общественное достояние</td><td>Подтверждение статуса</td></tr>
+      </table></div>
+      <div class="note stop"><b>Чего программа не пропустит</b>
+        <p>Видео с чужого канала без разрешения; CC BY-ND (запрещает переработку, а нарезка с субтитрами — это переработка); разрешение одного канала для видео с другого канала.</p></div>
+      <h3>Почему не «цитирование»</h3>
+      <p>Статья 1274 ГК РФ разрешает цитировать в информационных, критических, научных и учебных целях в оправданном объёме. Канал из подряд идущих смешных фрагментов чужих видео обычно под это не подходит: в нём нет разбора или новости. Поэтому Clip Studio на цитирование не опирается.</p>
+      <h3>Люди в кадре</h3>
+      <p>Статья 152.1 ГК РФ охраняет изображение гражданина. Ментор-юрист снижает оценку моментам, где высмеивают случайных людей, детей, сотрудников. Сомневаетесь — не публикуйте или заблюрьте лицо.</p>
+      <h3>Письмо автору</h3>
+      <div class="letter">Привет! Я делаю нарезки смешных моментов (пример: ссылка). Хочу резать ваши стримы для VK Клипов и Shorts. В каждом клипе будет ваш ник и ссылка на канал. Можно ли? Есть ли темы, которые не трогать? Можно ли включать монетизацию на нарезках, или делим доход?</div>
+      <p>Ответ — скриншотом в папку <code>proofs/</code>, путь — в поле «Доказательство» источника. Реестр прав выгружается в CSV в разделе «Источники и права».</p>
+    </section>
+
+    <!-- 5 -->
+    <section id="studio">
+      <h2>Студия: поиск моментов</h2>
+      <h3>Как писать запрос</h3>
+      <div class="tw"><table>
+        <tr><th>Работает</th><th>Хуже</th></tr>
+        <tr><td>«Моменты, где он уверен в себе, а потом всё идёт не так»</td><td>«Смешное»</td></tr>
+        <tr><td>«Реакции на донаты, где он не ожидал сумму»</td><td>«Донаты»</td></tr>
+        <tr><td>«Где гость перебивает и выигрывает спор»</td><td>«Интересные места»</td></tr>
+        <tr><td>«Все места с фразой «ну это база», склей в один ролик»</td><td>«Нарезка мемов»</td></tr>
+      </table></div>
+      <p>Точная фраза в кавычках <code>«…»</code> ищется по словам без модели — во всех местах, с учётом ё/е и пунктуации.</p>
+      <h3>Флажки</h3>
+      <ul>
+        <li><b>Склеить в один ролик</b> — все взятые моменты станут одной компиляцией.</li>
+        <li><b>Авторежим</b> — моменты с оценкой от 7 берутся и рендерятся сами. Публикация всё равно остаётся за вами.</li>
+        <li><b>Вырезать паузы внутри клипов</b> — тишина длиннее 0,6 с вырезается по таймкодам слов, на стыках мягкие аудиопереходы 30 мс.</li>
+      </ul>
+      <h3>Кандидаты</h3>
+      <p>У каждого — превью, место на шкале видео, цитата-панчлайн, оценки четырёх менторов и риски. «Взять» — в рендер, «В монтаж» — точная правка на таймлайне, «Сохранить время» — поправить границы.</p>
+      <h3>Ручной режим (без Claude Code)</h3>
+      <p>«Настройки → Claude → Вручную через claude.ai». Задача остановится на шаге «Ждёт ответа Claude» — нажмите «Открыть промпт», скопируйте его в чат claude.ai, вставьте JSON-ответ обратно.</p>
+      <h3>Экспорт в монтажку</h3>
+      <p>В панели задачи: <b>EDL для монтажки</b> — таймлайн для DaVinci Resolve и Premiere (File → Import → Timeline; исходники заранее добавьте в Media Pool). <b>CSV для LosslessCut</b> — отрезки для быстрой нарезки без перекодирования.</p>
+    </section>
+
+    <!-- 6 -->
+    <section id="editor">
+      <h2>Монтажный стол</h2>
+      <p>Раздел «Монтаж» — для точной ручной работы: плеер, таймлайн с раскадровкой и волной звука, транскрипт с переходом по словам. Можно резать и без Claude вообще.</p>
+      <ol class="steps">
+        <li><div><b>Найдите место</b><p>Кликните по слову в транскрипте или по таймлайну. Поиск по тексту — над транскриптом.</p></div></li>
+        <li><div><b>Выделите отрезок</b><p>Протяните мышью по таймлайну, нажмите <kbd>I</kbd> и <kbd>O</kbd> во время просмотра или кликните по времени фразы. <kbd>Shift</kbd>+клик по слову ставит конец выделения.</p></div></li>
+        <li><div><b>Проверьте</b><p><kbd>P</kbd> проигрывает только выделение. «Кадры выделения» показывают лист кадров.</p></div></li>
+        <li><div><b>Оформите и вырежьте</b><p>Название, хук, формат, субтитры, вырезание пауз → «Вырезать клип» или <kbd>Enter</kbd>.</p></div></li>
+      </ol>
+      <h3>Горячие клавиши</h3>
+      <div class="tw"><table>
+        <tr><th>Клавиша</th><th>Действие</th></tr>
+        <tr><td><kbd>Пробел</kbd></td><td>Пуск / пауза</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>На 1 секунду (с <kbd>Shift</kbd> — на 5)</td></tr>
+        <tr><td><kbd>,</kbd> <kbd>.</kbd></td><td>На один кадр</td></tr>
+        <tr><td><kbd>I</kbd> / <kbd>O</kbd></td><td>Вход / выход в текущей точке (работает и в русской раскладке)</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Проиграть выделение</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Вырезать клип</td></tr>
+      </table></div>
+      <p>Жёлтые области на таймлайне — кандидаты от менторов, зелёные — уже взятые или отрендеренные. Масштаб — ползунок под таймлайном.</p>
+    </section>
+
+    <!-- 7 -->
+    <section id="mentors">
+      <h2>Ремесло: советы менторов</h2>
+      <p>Эти правила зашиты в промпт (<code>prompts/mentors.md</code>). Их полезно знать самому, чтобы быстро решать «брать или нет».</p>
+      <div class="mentors">
+        <div class="mentor"><h4>Монтажёр</h4><p class="role">структура и тайминг</p><ul>
+          <li>Одна история: завязка → нарастание → панчлайн → реакция</li>
+          <li>Вход как можно позже, но понятно, что происходит</li>
+          <li>Конец через 0,5–1,5 с после панчлайна, на реакции</li>
+          <li>15–45 с — лучшая длина; две шутки — два клипа</li></ul></div>
+        <div class="mentor"><h4>Комик</h4><p class="role">что смешно постороннему</p><ul>
+          <li>Ожидание против реальности; уверенность → провал</li>
+          <li>Неожиданный ответ, оговорка, абсурдная эскалация</li>
+          <li>Самоирония; второй участник «переигрывает» героя</li>
+          <li>Не работает: внутренние мемы, смех без причины, травля</li></ul></div>
+        <div class="mentor"><h4>Аналитик удержания</h4><p class="role">досмотрят ли и перешлют ли</p><ul>
+          <li>Первые 1–2 секунды: цепляющая фраза или уже действие</li>
+          <li>Хук до 5 слов, задаёт вопрос, не спойлерит</li>
+          <li>Название конкретное, без пустого кликбейта</li>
+          <li>Плюс: хочется переслать, концовка закольцована</li></ul></div>
+        <div class="mentor"><h4>Редактор-юрист</h4><p class="role">можно ли публиковать</p><ul>
+          <li>Только с основанием из белого списка</li>
+          <li>Нет случайных людей и детей в неловком положении</li>
+          <li>Обрезка не меняет смысл сказанного</li>
+          <li>Мат в панчлайне — запикать или возрастная отметка</li></ul></div>
+      </div>
+      <h3>Чек-лист перед публикацией</h3>
+      <ul class="checklist" id="checklist">
+        <li><label><input type="checkbox" data-k="c1"><span>Понятно без исходника: посторонний поймёт, что происходит</span></label></li>
+        <li><label><input type="checkbox" data-k="c2"><span>Первая секунда цепляет, хук не раскрывает панчлайн</span></label></li>
+        <li><label><input type="checkbox" data-k="c3"><span>Конец на реакции, без обрыва на полуслове</span></label></li>
+        <li><label><input type="checkbox" data-k="c4"><span>Субтитры совпадают с речью, хук не закрывает лицо</span></label></li>
+        <li><label><input type="checkbox" data-k="c5"><span>Есть основание: своё видео, разрешение, CC BY или общественное достояние</span></label></li>
+        <li><label><input type="checkbox" data-k="c6"><span>Атрибуция автора в описании и титре (если видео не ваше)</span></label></li>
+        <li><label><input type="checkbox" data-k="c7"><span>Монетизация включается, только если автор её разрешил</span></label></li>
+        <li><label><input type="checkbox" data-k="c8"><span>Нет случайных людей в неловком положении и мата без запикивания</span></label></li>
+      </ul>
+      <p class="check-actions"><button type="button" id="reset">Сбросить чек-лист</button> — отметки сохраняются в этом браузере.</p>
+      <h3>Ритм</h3>
+      <p>1–3 сильных клипа в день лучше десяти средних: площадки оценивают удержание каждого ролика. Делайте серии с одним оформлением. Через неделю смотрите статистику: какие хуки и длины держат — те и просите у менторов в запросе.</p>
+    </section>
+
+    <!-- 8 -->
+    <section id="claude">
+      <h2>Claude, MCP и плагин</h2>
+      <h3>Три режима работы с Claude</h3>
+      <div class="tw"><table>
+        <tr><th>Режим</th><th>Что нужно</th><th>Оплата</th></tr>
+        <tr><td>Claude Code (по умолчанию)</td><td>Установленный Claude Code с входом</td><td>Лимиты подписки Pro/Max</td></tr>
+        <tr><td>Anthropic API</td><td>Ключ из Claude Console в «Настройках»</td><td>По токенам</td></tr>
+        <tr><td>Вручную</td><td>Любой чат claude.ai</td><td>Ничего сверх подписки</td></tr>
+      </table></div>
+      <p>Ориентир по стоимости: в тесте поиск моментов в двухминутном транскрипте на Sonnet стоил около $0,03, а сессия Claude Code, которая через MCP посмотрела кадры и вырезала клип, — около $0,06.</p>
+
+      <h3>MCP-сервер: Claude смотрит и режет сам</h3>
+      <p>Clip Studio — ещё и MCP-сервер. Подключите его, и в Claude Code или Claude Desktop появятся инструменты:</p>
+      <div class="tw"><table>
+        <tr><th>Инструмент</th><th>Что делает</th></tr>
+        <tr><td><code>list_videos</code>, <code>list_sources</code></td><td>Библиотека и белый список</td></tr>
+        <tr><td><code>transcript</code>, <code>search_transcript</code></td><td>Текст с таймкодами, поиск фразы</td></tr>
+        <tr><td><code>look</code></td><td>Лист кадров отрезка — Claude видит, что происходит в кадре</td></tr>
+        <tr><td><code>find_moments</code>, <code>candidates</code>, <code>render_job</code></td><td>Автопоиск менторами и рендер</td></tr>
+        <tr><td><code>cut</code></td><td>Вырезать клип по времени с хуком, субтитрами и вырезанием пауз</td></tr>
+        <tr><td><code>clip_preview</code></td><td>Кадры готового клипа — самопроверка</td></tr>
+        <tr><td><code>review</code>, <code>publish</code>, <code>export</code></td><td>Разбор на Opus, публикация (приватно), экспорт EDL/CSV</td></tr>
+        <tr><td><code>import_file</code>, <code>import_url</code></td><td>Добавить видео — только через юридический шлюз</td></tr>
+      </table></div>
+      <p><b>Подключение:</b> «Настройки → Подключение к Claude → Подключить к Claude Code» (или «к Claude Desktop», затем перезапустите Desktop). Из терминала:</p>
+      <div class="cmd"><pre>ClipStudio.exe connect-claude --desktop      # готовая программа
+python -m clipstudio connect-claude --desktop   # из исходников</pre><button type="button">Копировать</button></div>
+      <p>Проверка в Claude Code: команда <code>/mcp</code> — в списке должен быть <code>clip-studio</code>. Дальше просто пишите: <i>«Посмотри видео 3, найди, где он роняет телефон, и вырежи вертикальный клип»</i>.</p>
+
+      <h3>Плагин со скиллами</h3>
+      <div class="cmd"><pre>/plugin install clip-studio --marketplace skynet-skynet/clip-studio</pre><button type="button">Копировать</button></div>
+      <p>Скиллы: <code>/clip-studio:clip</code> — нарезка от поиска до проверки, <code>/clip-studio:watch</code> — посмотреть видео глазами, <code>/clip-studio:mentors</code> — советы и разбор, <code>/clip-studio:publish</code> — публикация. Репозиторий приватный, поэтому на компьютере должен быть вход в GitHub.</p>
+
+      <h3>Слэш-команды в папке проекта</h3>
+      <p>Если открыть Claude Code в папке исходников, работают <code>/clip</code>, <code>/add-source</code>, <code>/mentor</code>, <code>/setup</code>. Читать файл <code>.env</code> с ключами Claude Code в проекте запрещено настройками.</p>
+
+      <h3>С телефона</h3>
+      <p>В папке программы выполните <code>claude remote-control</code> и откройте сессию в приложении Claude или на claude.ai/code. Монтаж идёт на вашем компьютере — он должен быть включён.</p>
+
+      <h3>Облачные кредиты Claude Code</h3>
+      <p>Кредиты облачных сессий тратятся на Claude Code в облаке (claude.ai/code с подключённым репозиторием). Их удобно тратить на доработку самой программы: новые функции, стиль субтитров, тесты. Резать видео в облаке нельзя — у облака нет ваших файлов, а видеоплощадки оттуда закрыты.</p>
+    </section>
+
+    <!-- 9 -->
+    <section id="tools">
+      <h2>Инструменты с GitHub: что изучено и что взято</h2>
+      <p>Обзор живых проектов для монтажа и нарезки с ИИ на октябрь 2026. Звёзды — ориентир популярности на дату проверки.</p>
+      <div class="tools">
+        <div class="tool"><span class="n"><a href="https://github.com/browser-use/video-use">browser-use/video-use</a><span class="tag use">идеи взяты</span></span><span class="v">≈28,6k ★ · MIT</span>
+          <p>Скилл Claude Code: монтаж через чат. Транскрипт через платный ElevenLabs. Взяли: «вид таймлайна» (кадры + волна) для Claude, мягкие аудиопереходы 30 мс на склейках, самопроверку готового клипа глазами.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/mifi/lossless-cut">mifi/lossless-cut</a><span class="tag use">экспорт CSV</span></span><span class="v">≈43k ★ · GPL-2.0</span>
+          <p>Лучший ручной резак без перекодирования. Clip Studio выгружает отрезки в CSV, который LosslessCut импортирует.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/WyattBlue/auto-editor">WyattBlue/auto-editor</a><span class="tag use">идея взята</span></span><span class="v">≈5,4k ★ · Unlicense</span>
+          <p>Вырезает тишину, экспортирует в Premiere/Resolve/FCP. У нас — своё вырезание пауз по таймкодам слов и экспорт EDL.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/modelscope/FunClip">modelscope/FunClip</a></span><span class="v">≈6,4k ★ · MIT</span>
+          <p>Нарезчик с LLM и распознаванием спикеров, интерфейс на Gradio. Сильнее всего в китайском языке.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/mutonby/openshorts">mutonby/openshorts</a></span><span class="v">MIT</span>
+          <p>Самостоятельно размещаемый генератор шортсов: faster-whisper, PySceneDetect, Gemini, MediaPipe. Есть MCP-сервер.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/ClipsAI/clipsai">ClipsAI/clipsai</a></span><span class="v">≈545 ★ · MIT</span>
+          <p>Библиотека: клипы по транскрипту, перекадрирование на говорящего (нужен токен Hugging Face для Pyannote).</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/kevinwatt/ffmpeg-mcp-lite">kevinwatt/ffmpeg-mcp-lite</a><span class="tag use">подключается кнопкой</span></span><span class="v">MIT</span>
+          <p>Простой MCP для ffmpeg: обрезка, сжатие, склейка, субтитры. В «Настройках» — кнопка «Добавить ffmpeg-mcp-lite» (нужен uv).</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/video-creator/ffmpeg-mcp">video-creator/ffmpeg-mcp</a></span><span class="v">≈148 ★ · MIT</span>
+          <p>MCP-обёртка ffmpeg: клипы, склейка, наложение, кадры.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/pastorsimon1798/mcp-video">pastorsimon1798/mcp-video</a></span><span class="v">Apache-2.0</span>
+          <p>MCP для монтажа с ограничителями, обрезка, склейка, перепаковка под площадки.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/heygen-com/skills">heygen-com/skills</a> (video-edit)</span><span class="v">скилл</span>
+          <p>Скилл Claude Code, который сам вызывает ffmpeg и ffprobe. Ставится через <code>npx skills add</code>.</p></div>
+        <div class="tool"><span class="n"><a href="https://github.com/barefootford/buttercut">barefootford/buttercut</a></span><span class="v">≈593 ★ · некоммерческая</span>
+          <p>Монтаж с Claude Code с экспортом в FCP, Premiere, Resolve. Только Mac, лицензия запрещает перепродажу программы.</p></div>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section id="platforms">
+      <h2>Площадки</h2>
+      <h3>VK Видео</h3>
+      <ol>
+        <li>Создайте сообщество ВКонтакте под нарезки — канал VK Видео создаётся на его основе. Числовой ID (из адреса <code>club123456</code>) впишите в «Настройки → VK Видео».</li>
+        <li>Создайте приложение в кабинете разработчика VK ID (<a href="https://dev.vk.com">dev.vk.com</a>), тип — веб. Доверенный адрес перенаправления: <code>http://127.0.0.1:8765/api/auth/vk/callback</code>.</li>
+        <li>ID приложения сохраните как <code>VK_CLIENT_ID</code> и нажмите «Войти через VK ID». Если доступ к видео не выдаётся, используйте ссылку «старый способ» и вставьте токен вручную.</li>
+      </ol>
+      <p>Приватная загрузка: на свою страницу — «только я»; в сообщество — приватным файлом, который вы публикуете вручную. Шаги VK ID сверьте с документацией VK: при сборке её сайт был недоступен.</p>
+      <h3>YouTube</h3>
+      <ol>
+        <li><a href="https://console.cloud.google.com">Google Cloud Console</a> → новый проект → включите <b>YouTube Data API v3</b>.</li>
+        <li>OAuth consent screen: External, добавьте себя в Test users. Credentials → OAuth client ID → тип <b>Desktop app</b> → скачайте JSON.</li>
+        <li>Положите файл как <code>secrets/youtube_client_secret.json</code> рядом с программой, включите YouTube и нажмите «Войти в YouTube».</li>
+      </ol>
+      <p>Загрузки идут из отдельной квоты: до 100 видео в сутки. Вертикальные клипы до 3 минут получают #Shorts.</p>
+      <h3>Telegram</h3>
+      <ol>
+        <li><a href="https://t.me/BotFather">@BotFather</a> → <code>/newbot</code> → токен в «Настройки» как <code>TELEGRAM_BOT_TOKEN</code>.</li>
+        <li>Добавьте бота админом канала с правом публикации, канал укажите как <code>@username</code>.</li>
+        <li>Для черновиков: напишите боту <code>/start</code>, узнайте свой ID у <a href="https://t.me/userinfobot">@userinfobot</a> и впишите в «Чат для черновиков».</li>
+      </ol>
+      <p>Бот отправляет файлы до 50 МБ — минутный клип обычно 15–30 МБ.</p>
+      <h3>Rutube, Дзен, VK Клипы, Одноклассники</h3>
+      <p>Удобного открытого API нет, поэтому программа собирает пакет: видео, обложку и тексты под лимиты каждой площадки, плюс инструкцию. Ручная загрузка занимает около минуты.</p>
+    </section>
+
+    <!-- 11 -->
+    <section id="money">
+      <h2>Монетизация и закон</h2>
+      <div class="note"><b>Сначала права на доход</b>
+        <p>Зарабатывать на нарезке чужого видео можно, только если автор это разрешил. Частая схема — деление дохода или плата за клип. Площадки тоже требуют оригинальности: безопаснее всего свои стримы и нарезки с разрешением и заметной обработкой.</p></div>
+      <div class="tw"><table>
+        <tr><th>Площадка</th><th>Что известно на октябрь 2026</th></tr>
+        <tr><td>VK Видео</td><td>С 1 сентября 2026: от 1 000 подписчиков и 500 часов просмотра за 90 дней, контент оригинальный; адаптационный период с гарантированным минимумом; авторам 50–80% рекламной выручки</td></tr>
+        <tr><td>Rutube</td><td>Выплаты за рекламу, в среднем порядка 50–150 ₽ за 1 000 просмотров с рекламой; во втором полугодии 2026 готовится монетизация Shorts</td></tr>
+        <tr><td>Дзен</td><td>С 14 апреля 2025 рекламная монетизация — для текстов; видео зарабатывают через Дзен Премиум и донаты</td></tr>
+        <tr><td>YouTube</td><td>Новые подключения к партнёрской программе для авторов из России закрыты с марта 2022</td></tr>
+        <tr><td>Telegram</td><td>Доля от Telegram Ads для каналов от 1 000 подписчиков появлялась у российских каналов в 2024, затем сообщалось об отключении — проверьте в статистике канала</td></tr>
+      </table></div>
+      <h3>Другие способы</h3>
+      <ul>
+        <li><b>Клипмейкинг на заказ</b> — стримерам и подкастерам нужны нарезки; предложите «N клипов в неделю» за фикс или процент.</li>
+        <li><b>Реклама в своих каналах</b> — с маркировкой (ниже).</li>
+        <li><b>Донаты и платный контент</b> — VK, Rutube, Дзен, Telegram (Stars, платные посты).</li>
+      </ul>
+      <h3>Реестр блогеров</h3>
+      <p>С 1 ноября 2024 владельцы страниц с аудиторией больше 10 000 подписчиков подают сведения в Роскомнадзор — по каждой площадке отдельно, в течение 10 дней после порога, через Госуслуги. С 1 января 2025 реклама в незарегистрированных каналах запрещена. Во ВКонтакте, Одноклассниках, Дзене и на Rutube с 8 апреля 2025 отметку можно получить автоматически.</p>
+      <h3>Маркировка рекламы</h3>
+      <p>Каждая интеграция: пометка «Реклама», рекламодатель и идентификатор erid от оператора рекламных данных (ОРД); сведения уходят в ЕРИР. Кто получает erid и отчитывается — закрепите в договоре.</p>
+      <h3>Налоги</h3>
+      <p>Для старта проще всего самозанятость (НПД): 4% с доходов от физлиц, 6% от компаний и ИП, лимит 2,4 млн ₽ в год, регистрация в приложении «Мой налог». Условия проверяйте на <a href="https://npd.nalog.ru">npd.nalog.ru</a>. Это ориентир, а не налоговая консультация.</p>
+    </section>
+
+    <!-- 12 -->
+    <section id="trouble">
+      <h2>Если что-то не работает</h2>
+      <div class="tw"><table>
+        <tr><th>Проблема</th><th>Что делать</th></tr>
+        <tr><td>Окно не открылось</td><td>Откройте в браузере <code>http://127.0.0.1:8765</code>; консоль программы должна быть открыта</td></tr>
+        <tr><td>«Claude Code не найден»</td><td>Установите Claude Code и выполните <code>claude</code> для входа, или включите ручной режим</td></tr>
+        <tr><td>Распознавание очень медленное</td><td>Модель <code>small</code> или <code>base</code>; загружайте видео с субтитрами; видеокарта NVIDIA</td></tr>
+        <tr><td>Видео не играет в монтаже</td><td>Нужен H.264/MP4; Edge и Chrome играют, другие браузеры — не всегда</td></tr>
+        <tr><td>VK: код 5</td><td>Токен истёк — войдите заново</td></tr>
+        <tr><td>VK: код 15 или 7</td><td>Нет прав: вы не админ сообщества или у токена нет права video</td></tr>
+        <tr><td>YouTube: лимит исчерпан</td><td>Суточная квота загрузок закончилась — завтра</td></tr>
+        <tr><td>Telegram: больше 50 МБ</td><td>Короче клип или выше <code>crf</code> в настройках клипов</td></tr>
+        <tr><td>В Claude нет инструментов clip-studio</td><td>«Подключить к Claude Code», перезапустить Claude Code, проверить <code>/mcp</code></td></tr>
+        <tr><td>SmartScreen блокирует запуск</td><td>«Подробнее» → «Выполнить в любом случае»: программа не подписана</td></tr>
+      </table></div>
+    </section>
+
+    <!-- 13 -->
+    <section id="files">
+      <h2>Где что лежит</h2>
+      <div class="tw"><table>
+        <tr><th>Путь</th><th>Что там</th></tr>
+        <tr><td><code>data/videos</code>, <code>data/transcripts</code></td><td>Исходники и транскрипты</td></tr>
+        <tr><td><code>data/clips</code>, <code>data/packs</code>, <code>data/exports</code></td><td>Готовые клипы, пакеты для ручной загрузки, EDL и CSV</td></tr>
+        <tr><td><code>data/clipstudio.db</code></td><td>База: задачи, кандидаты, клипы, публикации, реестр прав</td></tr>
+        <tr><td><code>sources.yaml</code>, <code>config.yaml</code></td><td>Белый список и настройки</td></tr>
+        <tr><td><code>.env</code>, <code>secrets/</code></td><td>Ключи и токены — никому не отправляйте</td></tr>
+        <tr><td><code>proofs/</code></td><td>Доказательства разрешений авторов</td></tr>
+      </table></div>
+      <p>Для резервной копии сохраняйте <code>sources.yaml</code>, <code>proofs/</code> и <code>data/clipstudio.db</code>.</p>
+    </section>
+
+    <!-- 14 -->
+    <section id="sources">
+      <h2>Источники</h2>
+      <ul>
+        <li><a href="https://code.claude.com/docs/en/setup">Claude Code: установка</a>, <a href="https://code.claude.com/docs/en/mcp">MCP</a>, <a href="https://code.claude.com/docs/en/plugins">плагины</a>, <a href="https://code.claude.com/docs/en/remote-control">Remote Control</a>, <a href="https://code.claude.com/docs/en/headless">запуск из скриптов</a></li>
+        <li><a href="https://developers.google.com/youtube/v3/docs/videos/insert">YouTube Data API: videos.insert</a> и <a href="https://support.google.com/youtube/answer/7101720">доступность партнёрской программы</a></li>
+        <li><a href="https://postium.ru/vk-video-snizit-porog-vxoda-v-programmu-monetizacii/">Postium: порог монетизации VK Видео (август 2026)</a></li>
+        <li><a href="https://incrussia.ru/understand/luchshie-platformy-monetizatsii-kontenta-pogovorili-s-blogerami-i-mediamenedzherami-chtoby-uznat-kak-zarabotat-na-bloge-v-2026-godu/">Inc.: платформы монетизации в 2026</a></li>
+        <li><a href="https://adindex.ru/news/media/2026/09/1/348502.phtml">AdIndex: Rutube и Shorts (сентябрь 2026)</a></li>
+        <li><a href="https://blog.click.ru/market-news/dzen-obnovlyaet-pravila-monetizacii-kontenta/">Click.ru: правила монетизации Дзена (апрель 2025)</a></li>
+        <li><a href="https://smmplanner.com/blog/rieghistratsiia-bloghierov-s-auditoriiei-bolieie-opriedieliennogho-chisla-podpischikov-vsie-o-rieiestrie-rkn-i-novom-zakonie/">SMMplanner: реестр блогеров РКН</a></li>
+        <li><a href="https://vc.ru/id5657117/2772540-markirovka-internet-reklamy-2026">vc.ru: маркировка рекламы в 2026</a></li>
+        <li><a href="https://postium.ru/monetizaciya-telegram-kanalov-v-rossii/">Postium: монетизация Telegram-каналов</a>, <a href="https://mobile-review.com/all/news/telegram-ubral-funkczional-monetizaczii-dlya-vladelczev-rossijskih-kanalov/">Mobile-review: отключение для российских каналов</a></li>
+        <li>Обзор инструментов: <a href="https://medium.com/@umair349hassan/how-to-use-claude-code-for-video-editing-4-github-tools-with-install-steps-72cf6be7f04e">Medium, май 2026</a>, <a href="https://themenonlab.blog/blog/openshorts-open-source-ai-clip-generator">The Menon Lab об OpenShorts</a></li>
+      </ul>
+    </section>
+
+    <footer>Clip Studio · методичка версии 0.2. Шрифт заголовков — Montserrat (SIL Open Font License). ffmpeg в сборке для Windows — сборка BtbN под GPL.</footer>
+  </div>
+  </main>
+</div>
+<script>
+(function () {
+  // копирование команд
+  document.querySelectorAll(".cmd").forEach(function (box) {
+    var btn = box.querySelector("button");
+    btn.addEventListener("click", function () {
+      var text = box.querySelector("pre").innerText.split("\n").map(function (l) { return l.replace(/\s+#.*$/, ""); }).join("\n").trim();
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () {
+        btn.textContent = "Скопировано"; setTimeout(function () { btn.textContent = "Копировать"; }, 1500);
+      }, function () { btn.textContent = "Выделите вручную"; });
+    });
+  });
+  // чек-лист
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+                del: function (k) { try { localStorage.removeItem(k); } catch (e) {} } };
+  var boxes = document.querySelectorAll("#checklist input");
+  boxes.forEach(function (b) {
+    b.checked = store.get("cs-check-" + b.dataset.k) === "1";
+    b.addEventListener("change", function () { store.set("cs-check-" + b.dataset.k, b.checked ? "1" : "0"); });
+  });
+  document.getElementById("reset").addEventListener("click", function () {
+    boxes.forEach(function (b) { b.checked = false; store.del("cs-check-" + b.dataset.k); });
+  });
+  // тема
+  var themes = ["auto", "light", "dark"], names = { auto: "авто", light: "светлая", dark: "тёмная" };
+  var t = store.get("cs-theme") || "auto", btn = document.getElementById("theme");
+  function apply() { if (t === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", t); btn.textContent = "Тема: " + names[t]; }
+  apply();
+  btn.addEventListener("click", function () { t = themes[(themes.indexOf(t) + 1) % 3]; store.set("cs-theme", t); apply(); });
+  // подсветка раздела в оглавлении
+  var links = {}; document.querySelectorAll("nav.toc a").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { Object.values(links).forEach(function (a) { a.classList.remove("active"); }); if (links[e.target.id]) links[e.target.id].classList.add("active"); }
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    document.querySelectorAll("main section").forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>
