@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_PARAMS = {
     "count": 5, "min_seconds": None, "max_seconds": None, "format": None, "reframe": None,
-    "subtitle_style": None, "compilation": False, "auto": False, "video_ids": [],
+    "subtitle_style": None, "compilation": False, "auto": False, "video_ids": [], "jumpcut": None,
 }
 
 
@@ -47,6 +47,7 @@ def job_params(cfg: Config, params: dict) -> dict:
     p["reframe"] = p["reframe"] or c["reframe"]
     p["subtitle_style"] = p["subtitle_style"] or c["subtitle_style"]
     p["count"] = max(1, int(p["count"]))
+    p["jumpcut"] = bool(c.get("jumpcut", False) if p.get("jumpcut") is None else p["jumpcut"])
     p["video_ids"] = [int(v) for v in p.get("video_ids") or []]
     return p
 
@@ -67,16 +68,20 @@ class Pipeline:
         while True:
             job_id, action = self._q.get()
             try:
-                {"analyze": self.analyze, "render": self.render, "finish_manual": self.finish_manual}[action](job_id)
+                self._actions()[action](job_id)
             except Cancelled:
                 self.db.job_log(job_id, "Задача отменена", status="cancelled")
             except Exception as e:  # noqa: BLE001
                 log.error("job %s failed: %s", job_id, traceback.format_exc())
                 self.db.job_log(job_id, f"Ошибка: {e}", status="error", error=str(e))
 
+    def _actions(self) -> dict:
+        return {"analyze": self.analyze, "render": self.render, "finish_manual": self.finish_manual,
+                "render_manual": self.render_manual}
+
     def run_sync(self, job_id: int, action: str) -> None:
-        """Для CLI: выполнить шаг в текущем потоке."""
-        {"analyze": self.analyze, "render": self.render, "finish_manual": self.finish_manual}[action](job_id)
+        """Для CLI и MCP: выполнить шаг в текущем потоке."""
+        self._actions()[action](job_id)
 
     # ---------- создание ----------
     def create_job(self, request: str, params: dict) -> int:
@@ -91,6 +96,35 @@ class Pipeline:
                 raise ValueError(f"Видео {vid} не прошло юридический шлюз: {v['rights_reason']}")
         return self.db.insert("jobs", request=request, params=p, status="queued", stage="В очереди",
                               created_at=now(), updated_at=now())
+
+    def create_manual_clip(self, video_id: int, start: float, end: float, *, title: str = "", hook: str = "",
+                           params: dict | None = None, request: str = "") -> int:
+        """Ручная нарезка без модели: отрезок → задача с одним одобренным кандидатом. Возвращает id задачи."""
+        if end - start < 0.5:
+            raise ValueError("Отрезок слишком короткий")
+        p = {**(params or {}), "video_ids": [video_id], "count": 1}
+        jid = self.create_job(request or f"Ручная нарезка: {title or fmt_time(start)}", p)
+        video = self.db.get("videos", video_id)
+        end = min(end, float(video.get("duration") or end))
+        self.db.insert("candidates", job_id=jid, video_id=video_id, start=round(start, 2), end=round(end, 2),
+                       quote="", why="Ручная нарезка", scores={}, total=0, title=(title or "Клип")[:100], hook=hook[:60],
+                       tags=[], risk="", origin="manual", status="approved", created_at=now())
+        self.db.update("jobs", jid, status="rendering", stage="В очереди на рендер")
+        return jid
+
+    def render_manual(self, job_id: int) -> None:
+        """Для ручных клипов: при необходимости сначала транскрипт (для субтитров), потом рендер."""
+        job = self._check(job_id)
+        p = job["params"]
+        if p.get("subtitle_style") != "none":
+            for vid in p["video_ids"]:
+                video = self.db.get("videos", vid)
+                try:
+                    path = ensure_transcript(self.cfg, video, lambda f: self._progress(job_id, 0.4 * f, f"Транскрибация {int(f * 100)}%", "transcribing"))
+                    self.db.update("videos", vid, transcript_path=str(path))
+                except Exception as e:  # noqa: BLE001 — без транскрипта клип всё равно режется, просто без субтитров
+                    self.db.job_log(job_id, f"Субтитров не будет: {e}")
+        self.render(job_id)
 
     def _check(self, job_id: int) -> dict:
         job = self.db.get("jobs", job_id)
@@ -289,12 +323,14 @@ class Pipeline:
                 attributions.append(attr)
             if src and src.get("license") != "own" and not src.get("monetization_allowed"):
                 monet = False
-            words = all_words(load_transcript(video["transcript_path"]))
+            tpath = video.get("transcript_path") or ""
+            words = all_words(load_transcript(tpath)) if tpath and Path(tpath).exists() else []
             target = out if len(group) == 1 else out_dir / f"{clip_id}_part{i}.mp4"
             render_clip(
                 self.cfg, video, [Segment(c["start"], c["end"])], words, target, fmt=p["format"], reframe=p["reframe"],
                 sub_style=p["subtitle_style"], hook=(lead["hook"] if i == 0 and self.cfg["clips"].get("hook_title", True) else ""),
                 attribution=(attr if self.cfg["clips"].get("attribution_overlay", True) else ""),
+                jumpcut=bool(p.get("jumpcut")),
             )
             parts.append(target)
         if len(parts) > 1:
@@ -320,6 +356,32 @@ class Pipeline:
             self.db.update("candidates", c["id"], status="rendered")
         return clip_id
 
+    # ---------- экспорт в монтажки ----------
+    def export_job(self, job_id: int, fmt: str) -> tuple[str, str]:
+        """Возвращает (имя файла, содержимое) для EDL или CSV LosslessCut."""
+        from .export import edl, losslesscut_csv
+
+        job = self.db.get("jobs", job_id)
+        if not job:
+            raise ValueError("Задача не найдена")
+        cands = self.db.query(
+            "SELECT * FROM candidates WHERE job_id = ? AND status IN ('approved', 'rendered') ORDER BY video_id, start", (job_id,))
+        if not cands:
+            cands = self.db.query("SELECT * FROM candidates WHERE job_id = ? AND status != 'rejected' ORDER BY video_id, start", (job_id,))
+        if not cands:
+            raise ValueError("В задаче нет моментов для экспорта")
+        items, fps = [], 30.0
+        for c in cands:
+            video = self.db.get("videos", c["video_id"])
+            try:
+                fps = probe(Path(video["local_path"]))["fps"] or fps
+            except Exception:  # noqa: BLE001
+                pass
+            items.append({"file": video["local_path"], "start": c["start"], "end": c["end"], "name": c.get("title") or ""})
+        if fmt == "csv":
+            return f"job_{job_id}_losslesscut.csv", losslesscut_csv(items)
+        return f"job_{job_id}.edl", edl(f"Clip Studio job {job_id}", items, fps)
+
     # ---------- разбор менторами (Opus) ----------
     def review_clip(self, clip_id: int) -> dict:
         clip = self.db.get("clips", clip_id)
@@ -336,7 +398,8 @@ class Pipeline:
             src = rights.find_source(sources, video["source_id"])
             if src and src.get("rules"):
                 rules.append(src["rules"])
-            for w in all_words(load_transcript(video["transcript_path"])):
+            tpath = video.get("transcript_path") or ""
+            for w in (all_words(load_transcript(tpath)) if tpath and Path(tpath).exists() else []):
                 if c["start"] <= w["start"] < c["end"]:
                     lines.append((round(w["start"] - c["start"] + offset, 1), w["word"]))
             offset += c["end"] - c["start"]

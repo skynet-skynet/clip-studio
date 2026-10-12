@@ -5,6 +5,7 @@ import json
 import logging
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -14,16 +15,28 @@ class MediaError(RuntimeError):
     pass
 
 
+def _bundled(name: str) -> str | None:
+    """ffmpeg, положенный рядом с программой (сборка для Windows), важнее системного."""
+    from .config import RES, ROOT
+
+    exe = f"{name}.exe" if sys.platform.startswith("win") else name
+    for base in (ROOT / "ffmpeg", RES / "ffmpeg", ROOT / "ffmpeg" / "bin", RES / "ffmpeg" / "bin"):
+        cand = base / exe
+        if cand.exists():
+            return str(cand)
+    return None
+
+
 def ffmpeg_bin() -> str:
-    return shutil.which("ffmpeg") or "ffmpeg"
+    return _bundled("ffmpeg") or shutil.which("ffmpeg") or "ffmpeg"
 
 
 def ffprobe_bin() -> str:
-    return shutil.which("ffprobe") or "ffprobe"
+    return _bundled("ffprobe") or shutil.which("ffprobe") or "ffprobe"
 
 
 def ffmpeg_status() -> dict:
-    path = shutil.which("ffmpeg")
+    path = _bundled("ffmpeg") or shutil.which("ffmpeg")
     if not path:
         return {"ready": False, "message": "ffmpeg не найден. Установите его (см. гайд, раздел «Установка»)."}
     try:
@@ -59,7 +72,15 @@ def probe(path: Path) -> dict:
             rotation = int(sd["rotation"])
     if abs(rotation) in (90, 270):
         width, height = height, width
-    return {"duration": duration, "width": width, "height": height, "has_audio": a is not None}
+    fps = 30.0
+    rate = v.get("avg_frame_rate") or v.get("r_frame_rate") or ""
+    if "/" in rate:
+        num, den = rate.split("/", 1)
+        try:
+            fps = float(num) / float(den) if float(den) else fps
+        except ValueError:
+            pass
+    return {"duration": duration, "width": width, "height": height, "has_audio": a is not None, "fps": round(fps, 3)}
 
 
 def filter_path(p: Path | str) -> str:

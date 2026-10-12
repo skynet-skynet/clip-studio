@@ -9,18 +9,18 @@ from pathlib import Path
 import yaml
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__, auth, llm, rights
-from .config import ROOT, Config, load_config, load_sources, save_sources
+from . import __version__, auth, integrations, llm, rights, visual
+from .config import RES, Config, load_config, load_sources, save_sources
 from .db import DB
 from .discover import discover
 from .ingest import GateBlocked, import_local, import_url
 from .media import ffmpeg_status
 from .pipeline import Pipeline
 from .publish import publisher_statuses
-from .transcribe import whisper_status
+from .transcribe import ensure_transcript, whisper_status
 
 
 def _media_url(cfg: Config, path: str | None) -> str:
@@ -37,7 +37,7 @@ def create_app(cfg: Config | None = None) -> FastAPI:
     cfg = cfg or load_config()
     db = DB(cfg.data_dir / "clipstudio.db")
     pipe = Pipeline(cfg, db)
-    app = FastAPI(title="Clip Studio", version=__version__)
+    app = FastAPI(title="Clip Studio", version=__version__, docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json")
     # Защита от DNS rebinding: API отвечает только на обращения к localhost
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
     app.state.cfg, app.state.db, app.state.pipe = cfg, db, pipe
@@ -392,9 +392,108 @@ def create_app(cfg: Config | None = None) -> FastAPI:
         path.write_text(yaml.safe_dump(user, allow_unicode=True, sort_keys=False), encoding="utf-8")
         return {"config": _public_config()}
 
+    # ---------- редактор ----------
+    def _video_or_404(vid: int) -> dict:
+        v = db.get("videos", vid)
+        if not v:
+            raise HTTPException(404, "Видео не найдено")
+        if not v.get("local_path") or not Path(v["local_path"]).exists():
+            raise HTTPException(409, "Файл видео ещё не готов")
+        return v
+
+    @app.get("/api/videos/{vid}/waveform")
+    def video_waveform(vid: int, points: int = 1200):
+        return visual.waveform(cfg, _video_or_404(vid), points)
+
+    @app.get("/api/videos/{vid}/filmstrip")
+    def video_filmstrip(vid: int, n: int = 40):
+        n = max(8, min(int(n), 120))
+        return FileResponse(visual.filmstrip(cfg, _video_or_404(vid), n), media_type="image/jpeg")
+
+    @app.get("/api/videos/{vid}/frames")
+    def video_frames(vid: int, start: float, end: float, n: int = 6):
+        v = _video_or_404(vid)
+        sheet, _times = visual.contact_sheet(cfg, Path(v["local_path"]), start, end, n)
+        return FileResponse(sheet, media_type="image/jpeg")
+
+    @app.post("/api/videos/{vid}/transcribe")
+    def video_transcribe(vid: int):
+        v = _video_or_404(vid)
+        if v.get("status") == "transcribing":
+            return {"ok": True, "status": "transcribing"}
+
+        def work():
+            db.update("videos", vid, status="transcribing", status_message="Распознаю речь…")
+            try:
+                path = ensure_transcript(cfg, v, lambda f: db.update("videos", vid, status_message=f"Распознаю речь: {int(f * 100)}%"))
+                db.update("videos", vid, transcript_path=str(path), status="ready", status_message="")
+            except Exception as e:  # noqa: BLE001
+                db.update("videos", vid, status="ready", status_message=f"Транскрипт не получился: {e}")
+
+        threading.Thread(target=work, daemon=True).start()
+        return {"ok": True, "status": "transcribing"}
+
+    @app.post("/api/videos/{vid}/clip")
+    async def video_clip(vid: int, request: Request):
+        _video_or_404(vid)
+        body = await request.json()
+        try:
+            jid = pipe.create_manual_clip(
+                vid, float(body.get("start", 0)), float(body.get("end", 0)), title=str(body.get("title") or ""),
+                hook=str(body.get("hook") or ""),
+                params={k: body.get(k) for k in ("format", "reframe", "subtitle_style", "jumpcut") if body.get(k) is not None},
+            )
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        pipe.submit(jid, "render_manual")
+        return {"job": job_brief(db.get("jobs", jid))}
+
+    @app.get("/api/videos/{vid}/candidates")
+    def video_candidates(vid: int):
+        rows = db.query("SELECT * FROM candidates WHERE video_id = ? AND status != 'rejected' ORDER BY total DESC, id DESC LIMIT 200", (vid,))
+        return {"candidates": [cand_out(c) for c in rows]}
+
+    @app.get("/api/videos/{vid}/clips")
+    def video_clips(vid: int):
+        jobs = {r["job_id"] for r in db.query("SELECT DISTINCT job_id FROM candidates WHERE video_id = ?", (vid,))}
+        if not jobs:
+            return {"clips": []}
+        marks = ",".join("?" for _ in jobs)
+        rows = db.query(f"SELECT * FROM clips WHERE job_id IN ({marks}) AND path IS NOT NULL ORDER BY id DESC", tuple(jobs))
+        return {"clips": [clip_out(c) for c in rows]}
+
+    @app.get("/api/jobs/{jid}/export")
+    def jobs_export(jid: int, format: str = "edl"):
+        try:
+            name, content = pipe.export_job(jid, "csv" if format == "csv" else "edl")
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        media = "text/csv" if name.endswith(".csv") else "text/plain"
+        return Response(content, media_type=f"{media}; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+    # ---------- подключение к Claude ----------
+    @app.get("/api/integrations")
+    def integrations_status():
+        return {
+            "claude_code": integrations.claude_code_status(cfg),
+            "desktop_config": str(integrations.desktop_config_path()),
+            "mcp_json": integrations.mcp_json_snippet(),
+        }
+
+    @app.post("/api/integrations/claude")
+    async def integrations_connect(request: Request):
+        body = await request.json()
+        target = body.get("target", "code")
+        if target == "desktop":
+            return integrations.connect_claude_desktop(cfg)
+        if target == "ffmpeg":
+            return integrations.connect_ffmpeg_mcp(cfg)
+        return integrations.connect_claude_code(cfg)
+
     @app.get("/api/guide")
     def guide():
-        path = ROOT / "docs" / "GUIDE.md"
+        path = RES / "docs" / "GUIDE.md"
         return {"markdown": path.read_text(encoding="utf-8") if path.exists() else "Гайд не найден"}
 
     @app.get("/api/ledger")
@@ -403,6 +502,7 @@ def create_app(cfg: Config | None = None) -> FastAPI:
 
     # ---------- статика ----------
     app.mount("/media", StaticFiles(directory=str(cfg.data_dir)), name="media")
-    app.mount("/fonts", StaticFiles(directory=str(ROOT / "fonts")), name="fonts")
-    app.mount("/", StaticFiles(directory=str(ROOT / "web"), html=True), name="web")
+    app.mount("/fonts", StaticFiles(directory=str(RES / "fonts")), name="fonts")
+    app.mount("/help", StaticFiles(directory=str(RES / "docs"), html=True), name="help")
+    app.mount("/", StaticFiles(directory=str(RES / "web"), html=True), name="web")
     return app

@@ -38,6 +38,8 @@ clips:
   format: vertical         # vertical (9:16) | horizontal (16:9) | square (1:1)
   reframe: blur            # blur — размытый фон | center — обрезка по центру | face — по лицу (нужен opencv)
   subtitle_style: karaoke  # karaoke — подсветка слов | plain | none
+  jumpcut: false           # вырезать паузы внутри клипа (по таймкодам слов)
+  jumpcut_gap: 0.6         # паузы длиннее этого (сек) вырезаются
   hook_title: true         # крупный заголовок-хук первые секунды
   attribution_overlay: true
   loudness_lufs: -14

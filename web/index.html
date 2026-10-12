@@ -13,12 +13,14 @@
       <div class="brand">Clip <mark>Studio</mark></div>
       <nav class="nav" aria-label="Разделы">
         <button data-view="studio">Студия</button>
+        <button data-view="edit">Монтаж</button>
         <button data-view="videos">Видео <span class="count" id="nav-videos"></span></button>
         <button data-view="sources">Источники и права</button>
         <button data-view="clips">Клипы <span class="count" id="nav-clips"></span></button>
         <button data-view="pubs">Публикации</button>
         <button data-view="settings">Настройки</button>
         <button data-view="guide">Гайд</button>
+        <a class="nav-link" href="/help/manual.html" target="_blank" rel="noopener">Методичка</a>
       </nav>
       <div class="health" id="health" aria-live="polite"></div>
       <button class="theme-toggle" id="theme-toggle" type="button">Тема: авто</button>
@@ -30,5 +32,6 @@
   <div class="toast" id="toast" role="status" hidden></div>
 
   <script src="/app.js"></script>
+  <script src="/editor.js"></script>
 </body>
 </html>

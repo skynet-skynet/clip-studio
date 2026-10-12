@@ -7,12 +7,17 @@ from __future__ import annotations
 import copy
 import os
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
+FROZEN = bool(getattr(sys, "frozen", False))
+# RES — встроенные файлы (web, prompts, fonts, docs, примеры), только чтение.
+# ROOT — рабочая папка пользователя (config.yaml, sources.yaml, .env, data/). В собранной программе — рядом с .exe.
+RES = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+ROOT = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent.parent
 
 DEFAULTS: dict[str, Any] = {
     "app": {"host": "127.0.0.1", "port": 8765, "data_dir": "data", "language": "ru"},
@@ -36,6 +41,8 @@ DEFAULTS: dict[str, Any] = {
         "format": "vertical",
         "reframe": "blur",
         "subtitle_style": "karaoke",
+        "jumpcut": False,
+        "jumpcut_gap": 0.6,
         "hook_title": True,
         "attribution_overlay": True,
         "loudness_lufs": -14,
@@ -94,8 +101,11 @@ def ensure_user_files(root: Path = ROOT) -> None:
         ("sources.example.yaml", "sources.yaml"),
         (".env.example", ".env"),
     ):
-        if not (root / target).exists() and (root / example).exists():
-            shutil.copyfile(root / example, root / target)
+        if (root / target).exists():
+            continue
+        src = root / example if (root / example).exists() else RES / example
+        if src.exists():
+            shutil.copyfile(src, root / target)
 
 
 class Config(dict):

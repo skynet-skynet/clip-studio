@@ -18,11 +18,11 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 
-from .config import ROOT, Config
+from .config import RES, Config
 
 log = logging.getLogger(__name__)
 
-PROMPTS = ROOT / "prompts"
+PROMPTS = RES / "prompts"
 
 MOMENTS_SCHEMA = {
     "type": "object",

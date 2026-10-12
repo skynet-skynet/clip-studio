@@ -184,6 +184,7 @@ async function viewStudio(box, jobArg) {
   const subs = select("subs", [["", "Как в настройках"], ["karaoke", "Подсветка слов"], ["plain", "Обычные"], ["none", "Без субтитров"]], "");
   const comp = h("input", { type: "checkbox" });
   const auto = h("input", { type: "checkbox" });
+  const jump = h("input", { type: "checkbox" });
   const go = h("button", { class: "btn marker", type: "button" }, "Найти моменты");
   go.addEventListener("click", async () => {
     if (!picked.size) return toast("Выберите хотя бы одно видео", true);
@@ -193,7 +194,7 @@ async function viewStudio(box, jobArg) {
         request: req.value, video_ids: [...picked], count: Number(count.value) || 5,
         min_seconds: minS.value ? Number(minS.value) : null, max_seconds: maxS.value ? Number(maxS.value) : null,
         format: fmt.value || null, reframe: reframe.value || null, subtitle_style: subs.value || null,
-        compilation: comp.checked, auto: auto.checked,
+        compilation: comp.checked, auto: auto.checked, jumpcut: jump.checked,
       } });
       location.hash = `studio/${job.id}`;
     } catch (e) { toast(e.message, true); } finally { done(); }
@@ -205,6 +206,7 @@ async function viewStudio(box, jobArg) {
     h("div", { class: "grid cols-4" }, field("Кадрирование", reframe), field("Субтитры", subs),
       h("label", { class: "check" }, comp, "Склеить в один ролик"),
       h("label", { class: "check", title: "Сам одобрит моменты с оценкой от 7 и отрендерит. Публикация всё равно ручная." }, auto, "Авторежим")),
+    h("label", { class: "check", title: "Паузы длиннее 0,6 с внутри клипа вырезаются по таймкодам слов" }, jump, "Вырезать паузы внутри клипов"),
     h("div", { class: "actions" }, go, h("span", { class: "note", text: "Поиск идёт на Sonnet, разбор готовых клипов — на Opus." })),
   ));
 
@@ -264,6 +266,11 @@ function jobPanel(job, cands, clips, redraw) {
       catch (err) { toast(err.message, true); } finally { done(); }
     } }, job.params?.compilation ? `Склеить ${approved} в ролик` : `Отрендерить ${approved}`));
   }
+  if (cands.length) {
+    acts.append(
+      h("a", { class: "btn ghost small", href: `/api/jobs/${job.id}/export?format=edl`, title: "Таймлайн для DaVinci Resolve и Premiere" }, "EDL для монтажки"),
+      h("a", { class: "btn ghost small", href: `/api/jobs/${job.id}/export?format=csv`, title: "Отрезки для LosslessCut" }, "CSV для LosslessCut"));
+  }
   head.append(acts);
   out.push(head);
 
@@ -315,6 +322,7 @@ function candCard(c, job) {
       c.status === "rendered" ? h("span", { class: "badge ok", text: "Отрендерен" }) : h("div", { class: "actions" },
         c.status !== "approved" ? h("button", { class: "btn", onclick: () => set({ status: "approved" }) }, "Взять") : h("button", { class: "btn ghost", onclick: () => set({ status: "proposed" }) }, "Не брать"),
         c.status !== "rejected" ? h("button", { class: "btn ghost", onclick: () => set({ status: "rejected" }) }, "Отклонить") : h("button", { class: "btn ghost", onclick: () => set({ status: "proposed" }) }, "Вернуть"),
+        h("button", { class: "btn ghost", onclick: () => { location.hash = `edit/${c.video_id}?cand=${c.id}`; } }, "В монтаж"),
         c.origin === "phrase" ? h("span", { class: "badge", text: "Точная фраза" }) : null),
     ),
   );
@@ -456,6 +464,7 @@ async function viewVideos(box) {
       h("td", {}, h("span", { class: "note", text: v.status === "ready" ? (v.has_transcript ? "Транскрипт есть" : v.has_subs ? "Есть субтитры" : "Готово") : (v.status_message || v.status) })),
       h("td", {}, h("div", { class: "actions" },
         h("button", { class: "btn small", disabled: v.status !== "ready", onclick: () => { location.hash = `studio?video=${v.id}`; } }, "Нарезать"),
+        h("button", { class: "btn ghost small", disabled: !v.media_url || v.status === "downloading", onclick: () => { location.hash = `edit/${v.id}`; } }, "Монтаж"),
         h("button", { class: "btn ghost small", onclick: async () => {
           if (!confirm(`Удалить «${v.title}» из библиотеки? Файл будет удалён.`)) return;
           await api(`/api/videos/${v.id}`, { method: "DELETE" }); route();
@@ -781,6 +790,28 @@ async function viewSettings(box) {
     try { const r = await api("/api/auth/youtube/start"); r.started ? toast(r.message || "Откройте вкладку браузера") : toast(r.error, true); }
     catch (e) { toast(e.message, true); }
   });
+  // подключение к Claude как MCP
+  const integ = await api("/api/integrations").catch(() => null);
+  if (integ) {
+    const connect = (target, label) => {
+      const b = h("button", { class: "btn ghost", type: "button" }, label);
+      b.addEventListener("click", async () => {
+        const done = busy(b, "Подключаю…");
+        try { const r = await api("/api/integrations/claude", { json: { target } }); toast(r.message, !r.ok); }
+        catch (e) { toast(e.message, true); } finally { done(); }
+      });
+      return b;
+    };
+    box.append(h("h2", { text: "Подключение к Claude" }), h("div", { class: "panel grid" },
+      h("p", { class: "note", text: "Clip Studio работает как MCP-сервер: Claude Code и Claude Desktop могут смотреть кадры, читать транскрипт, резать и публиковать клипы. Юридический шлюз действует и там." }),
+      h("div", { class: "actions" },
+        h("span", { class: `badge ${integ.claude_code.registered ? "ok" : ""}`, text: `Claude Code: ${integ.claude_code.message}` })),
+      h("div", { class: "actions" }, connect("code", "Подключить к Claude Code"), connect("desktop", "Подключить к Claude Desktop"),
+        connect("ffmpeg", "Добавить ffmpeg-mcp-lite")),
+      h("details", {}, h("summary", { class: "note", text: "Конфиг вручную (для других MCP-клиентов)" }), h("pre", { class: "log", text: integ.mcp_json })),
+      h("p", { class: "note" }, "Подробно — в ", h("a", { href: "/help/manual.html#claude", target: "_blank", rel: "noopener", text: "методичке" }), ".")));
+  }
+
   box.append(h("h2", { text: "Ключи и вход" }), h("div", { class: "panel grid" }, ...secretRows,
     h("div", { class: "actions" }, vkBtn, ytBtn), legacy,
     status.youtube_auth && status.youtube_auth.error ? h("p", { class: "risk", text: `YouTube: ${status.youtube_auth.error}` }) : null));

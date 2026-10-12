@@ -9,12 +9,21 @@
   python -m clipstudio approve 12 14 15 && python -m clipstudio render 3
   python -m clipstudio review 7
   python -m clipstudio publish 7 --to vk,telegram,pack --privacy private
+  python -m clipstudio cut 1 812.4 841.9 --title "Шкаф" --hook "ПЛАН БЫЛ ИДЕАЛЬНЫЙ" --jumpcut
+  python -m clipstudio export 3 --format edl       # в DaVinci Resolve / Premiere (или csv для LosslessCut)
+  python -m clipstudio mcp                         # MCP-сервер для Claude Code / Claude Desktop
+  python -m clipstudio connect-claude [--desktop]  # подключить MCP-сервер к Claude
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import socket
+import subprocess
 import sys
+import threading
 import time
 import webbrowser
 from pathlib import Path
@@ -39,6 +48,40 @@ def _ctx():
     return cfg, db
 
 
+def _browser_candidates() -> list[str]:
+    names = ["msedge", "chrome", "google-chrome", "chromium", "chromium-browser", "microsoft-edge", "brave"]
+    found = [p for n in names if (p := shutil.which(n))]
+    if sys.platform.startswith("win"):
+        for base in (os.environ.get("PROGRAMFILES(X86)", ""), os.environ.get("PROGRAMFILES", ""), os.environ.get("LOCALAPPDATA", "")):
+            for rel in ("Microsoft/Edge/Application/msedge.exe", "Google/Chrome/Application/chrome.exe"):
+                p = Path(base) / rel
+                if base and p.exists():
+                    found.append(str(p))
+    elif sys.platform == "darwin":
+        for app in ("Microsoft Edge", "Google Chrome", "Chromium"):
+            p = Path(f"/Applications/{app}.app/Contents/MacOS/{app}")
+            if p.exists():
+                found.append(str(p))
+    return found
+
+
+def open_app_window(url: str) -> None:
+    """Открывает интерфейс отдельным окном без вкладок (режим --app у Edge/Chrome), иначе — в браузере."""
+    for exe in _browser_candidates():
+        try:
+            subprocess.Popen([exe, f"--app={url}", "--window-size=1440,920"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+        except OSError:
+            continue
+    webbrowser.open(url)
+
+
+def _port_busy(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex((host, port)) == 0
+
+
 def cmd_serve(args) -> None:
     import uvicorn
 
@@ -47,10 +90,50 @@ def cmd_serve(args) -> None:
     cfg = load_config()
     host, port = cfg["app"]["host"], int(args.port or cfg["app"]["port"])
     url = f"http://{host}:{port}"
-    print(f"Clip Studio: {url}  (остановить — Ctrl+C)")
+    if _port_busy(host, port):
+        print(f"Clip Studio уже запущен: {url}")
+        if not args.no_browser:
+            open_app_window(url)
+        return
+    print(f"Clip Studio: {url}\nЭто окно не закрывайте, пока работаете. Остановить — Ctrl+C.")
     if not args.no_browser:
-        webbrowser.open(url)
+        threading.Timer(1.2, open_app_window, args=(url,)).start()
     uvicorn.run(create_app(cfg), host=host, port=port, log_level="warning")
+
+
+def cmd_mcp(args) -> None:
+    from .mcp_server import main as mcp_main
+
+    mcp_main()
+
+
+def cmd_connect(args) -> None:
+    from . import integrations
+
+    cfg, _ = _ctx()
+    results = {"claude_code": integrations.connect_claude_code(cfg)}
+    if args.desktop:
+        results["claude_desktop"] = integrations.connect_claude_desktop(cfg)
+    if args.ffmpeg:
+        results["ffmpeg_mcp"] = integrations.connect_ffmpeg_mcp(cfg)
+    _out(results, True)
+
+
+def cmd_cut(args) -> None:
+    _, db, pipe = _pipe()
+    jid = pipe.create_manual_clip(args.video, args.start, args.end, title=args.title or "", hook=args.hook or "",
+                                  params={"format": args.format, "reframe": args.reframe, "jumpcut": args.jumpcut})
+    pipe.run_sync(jid, "render_manual")
+    for c in db.query("SELECT id, path, duration FROM clips WHERE job_id = ?", (jid,)):
+        print(f"Клип {c['id']} ({c['duration']:.1f} с): {c['path']}")
+
+
+def cmd_export(args) -> None:
+    cfg, _, pipe = _pipe()
+    name, content = pipe.export_job(args.job, args.format)
+    out = cfg.path("exports") / name
+    out.write_text(content, encoding="utf-8")
+    print(out)
 
 
 def cmd_status(args) -> None:
@@ -280,6 +363,29 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("job", type=int)
     s.add_argument("--answer", help="файл или текст с JSON-ответом Claude")
     s.set_defaults(fn=cmd_manual)
+
+    sub.add_parser("mcp", help="MCP-сервер (stdio) для Claude Code / Claude Desktop").set_defaults(fn=cmd_mcp)
+
+    s = sub.add_parser("connect-claude", help="подключить MCP-сервер к Claude Code (и Claude Desktop)")
+    s.add_argument("--desktop", action="store_true", help="ещё и в Claude Desktop")
+    s.add_argument("--ffmpeg", action="store_true", help="ещё и ffmpeg-mcp-lite (нужен uv)")
+    s.set_defaults(fn=cmd_connect)
+
+    s = sub.add_parser("cut", help="вырезать клип вручную по времени")
+    s.add_argument("video", type=int)
+    s.add_argument("start", type=float)
+    s.add_argument("end", type=float)
+    s.add_argument("--title")
+    s.add_argument("--hook")
+    s.add_argument("--format", choices=["vertical", "horizontal", "square"])
+    s.add_argument("--reframe", choices=["blur", "center", "face"])
+    s.add_argument("--jumpcut", action="store_true", help="вырезать паузы")
+    s.set_defaults(fn=cmd_cut)
+
+    s = sub.add_parser("export", help="экспорт отрезков задачи в EDL или CSV")
+    s.add_argument("job", type=int)
+    s.add_argument("--format", choices=["edl", "csv"], default="edl")
+    s.set_defaults(fn=cmd_export)
 
     s = sub.add_parser("secret", help="сохранить ключ в .env (ввод скрыт)")
     s.add_argument("name", choices=["ANTHROPIC_API_KEY", "VK_ACCESS_TOKEN", "VK_REFRESH_TOKEN", "VK_CLIENT_ID", "YOUTUBE_API_KEY", "TELEGRAM_BOT_TOKEN"])
