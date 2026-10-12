@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import ROOT, Config
-from .media import extract_frame, ffmpeg_bin, filter_path, probe, run
+from .media import extract_frame, ffmpeg_bin, probe, run
 from .subtitles import build_ass, words_in_range
 
 log = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def _video_filter(fmt: str, reframe: str, src_w: int, src_h: int, face_x: float 
 
 def render_segment(
     cfg: Config, video: Path, seg: Segment, words: list[dict], out: Path, *, fmt: str, reframe: str,
-    sub_style: str, hook: str, attribution: str, work: Path, src_w: int, src_h: int,
+    sub_style: str, hook: str, attribution: str, work: Path, src_w: int, src_h: int, has_audio: bool = True,
 ) -> Path:
     W, H = SIZES[fmt]
     dur = seg.end - seg.start
@@ -83,22 +83,27 @@ def render_segment(
         clip_words, width=W, height=H, duration=dur, style=sub_style, hook=hook,
         attribution=attribution, font=cfg["clips"].get("font", "Montserrat ExtraBold"), upper=(fmt != "horizontal"),
     )
-    ass_path = work / f"{uuid.uuid4().hex[:8]}.ass"
-    ass_path.write_text(ass, encoding="utf-8")
+    # Субтитры и шрифт кладём в рабочую папку и запускаем ffmpeg из неё: относительные пути
+    # не нужно экранировать (на Windows абсолютные пути вида C:\... ломают фильтр ass).
+    ass_name = f"{uuid.uuid4().hex[:8]}.ass"
+    (work / ass_name).write_text(ass, encoding="utf-8")
+    fonts = work / "fonts"
+    if not fonts.exists():
+        shutil.copytree(FONTS_DIR, fonts)
     face_x = face_center_x(video, seg.start, seg.end) if reframe == "face" else None
     vf = _video_filter(fmt, reframe, src_w, src_h, face_x)
-    vf += f";[base]ass={filter_path(ass_path)}:fontsdir={filter_path(FONTS_DIR)}[v]"
+    vf += f";[base]ass={ass_name}:fontsdir=fonts[v]"
     lufs = cfg["clips"].get("loudness_lufs", -14)
-    af = f"loudnorm=I={lufs}:TP=-1.5:LRA=11,aresample=48000"
+    audio = (["-map", "0:a:0", "-af", f"loudnorm=I={lufs}:TP=-1.5:LRA=11,aresample=48000",
+              "-c:a", "aac", "-b:a", "160k", "-ar", "48000"] if has_audio else ["-an"])
     cmd = [
         ffmpeg_bin(), "-y", "-hide_banner", "-loglevel", "error",
-        "-ss", f"{seg.start:.3f}", "-i", str(video), "-t", f"{dur:.3f}",
-        "-filter_complex", vf, "-map", "[v]", "-map", "0:a?", "-af", af,
+        "-ss", f"{seg.start:.3f}", "-i", str(Path(video).resolve()), "-t", f"{dur:.3f}",
+        "-filter_complex", vf, "-map", "[v]", *audio,
         "-c:v", "libx264", "-preset", cfg["clips"].get("preset", "veryfast"), "-crf", str(cfg["clips"].get("crf", 20)),
-        "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
-        "-movflags", "+faststart", str(out),
+        "-pix_fmt", "yuv420p", "-r", "30", "-movflags", "+faststart", str(Path(out).resolve()),
     ]
-    run(cmd)
+    run(cmd, cwd=work)
     return out
 
 
@@ -122,10 +127,8 @@ def render_clip(
 ) -> dict:
     """Рендерит один клип (из одного или нескольких сегментов — склейка). Возвращает метаданные."""
     src = Path(video["local_path"])
-    src_w, src_h = int(video.get("width") or 0), int(video.get("height") or 0)
-    if not src_w or not src_h:
-        info = probe(src)
-        src_w, src_h = info["width"], info["height"]
+    info = probe(src)
+    src_w, src_h, has_audio = info["width"], info["height"], info["has_audio"]
     work = Path(cfg.path("work", uuid.uuid4().hex[:10]))
     try:
         parts = []
@@ -134,6 +137,7 @@ def render_clip(
             render_segment(
                 cfg, src, seg, words, part, fmt=fmt, reframe=reframe, sub_style=sub_style,
                 hook=hook if i == 0 else "", attribution=attribution, work=work, src_w=src_w, src_h=src_h,
+                has_audio=has_audio,
             )
             parts.append(part)
         out.parent.mkdir(parents=True, exist_ok=True)

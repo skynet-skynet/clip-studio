@@ -38,6 +38,7 @@ Source:
 - `POST /api/videos/upload` — multipart: `file` (видео), `source_id`, необязательно `subs` (.srt/.vtt), `title` → `{"video": Video}`
 - `POST /api/videos/url` — `{"url": "...", "source_id": "..."}` → `{"video": Video}` или 403 с причиной блокировки шлюзом. Загрузка идёт в фоне: статус в `Video.status`.
 - `DELETE /api/videos/{id}` → `{"ok": true}`
+- `GET /api/videos/{id}/transcript` → JSON-транскрипт
 
 Video:
 ```json
@@ -106,7 +107,9 @@ Candidate:
 - `GET /api/clips` → `{"clips": [Clip]}`
 - `GET /api/clips/{id}` → `{"clip": Clip, "publications": [Publication]}`
 - `POST /api/clips/{id}` — правка `title`, `description`, `tags` → `{"clip": Clip}`
-- `POST /api/clips/{id}/review` → разбор готового клипа менторами (Opus): `{"review": {"verdict": "publish|fix|drop", "notes": ["…"], "title_options": ["…"]}}`
+- `POST /api/clips/{id}/review` → разбор готового клипа менторами (Opus): `{"review": {"verdict": "publish|fix|drop", "notes": ["…"], "title_options": ["…"], "hook_options": ["…"], "trim": {"start_delta": 0, "end_delta": -0.6}, "description": "…", "tags": ["…"]}}`. В ручном режиме: `{"review": null, "manual_prompt": "…"}`
+- `POST /api/clips/{id}/review/manual` — `{"answer": "JSON-ответ"}` → `{"review": {...}}`
+- `POST /api/clips/{id}/apply` — `{"title": "…", "hook": "…", "description": "…", "tags": ["…"], "apply_trim": true}` → `{"clip": Clip}`. Хук и подрезка перерендеривают клип под тем же id
 - `DELETE /api/clips/{id}` → `{"ok": true}`
 
 Clip:
@@ -131,9 +134,8 @@ Publication:
 
 ## Авторизация площадок
 
-- `GET /api/auth/youtube/start` → `{"url": "https://accounts.google.com/..."}` — открыть в браузере; после входа токен сохранится сам
-- `GET /api/auth/youtube/callback?...` — обрабатывает редирект Google
-- `GET /api/auth/vk/start` → `{"url": "https://id.vk.ru/authorize?..."}` (нужен VK_CLIENT_ID)
+- `GET /api/auth/youtube/start` → `{"started": true, "message": "…"}` — на компьютере откроется браузер для входа в Google, токен сохранится сам; состояние входа — в `GET /api/status` → `youtube_auth`
+- `GET /api/auth/vk/start` → `{"url": "https://id.vk.ru/authorize?...", "legacy_url": "https://oauth.vk.com/authorize?..."}` (нужен VK_CLIENT_ID)
 - `GET /api/auth/vk/callback?...` — обрабатывает редирект VK ID и сохраняет токен в .env
 - `POST /api/settings/secret` — `{"name": "TELEGRAM_BOT_TOKEN", "value": "..."}` → сохраняет в `.env` (только имена из белого списка)
 

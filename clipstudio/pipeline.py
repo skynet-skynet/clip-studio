@@ -389,8 +389,9 @@ class Pipeline:
             new_id = self._render_group(job, [c for c in group if c], load_sources(self.cfg))
             new_clip = self.db.get("clips", new_id)
             # переносим результат в старый id, чтобы ссылки и публикации не терялись
-            Path(clip["path"]).unlink(missing_ok=True)
-            Path(clip["thumb"] or "").unlink(missing_ok=True) if clip.get("thumb") else None
+            for key in ("path", "thumb"):
+                if clip.get(key):
+                    Path(clip[key]).unlink(missing_ok=True)
             self.db.update("clips", clip_id, path=new_clip["path"], thumb=new_clip["thumb"], duration=new_clip["duration"],
                            width=new_clip["width"], height=new_clip["height"])
             self.db.delete("clips", new_id)

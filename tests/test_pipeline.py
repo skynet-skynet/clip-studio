@@ -86,3 +86,17 @@ def test_manual_mode(cfg, pipe, sample_video, sample_srt):
     pipe.run_sync(jid, "finish_manual")
     assert pipe.db.get("jobs", jid)["status"] == "review"
     assert pipe.db.query("SELECT COUNT(*) AS n FROM candidates WHERE job_id = ?", (jid,))[0]["n"] == 1
+
+
+def test_render_silent_video(cfg, tmp_path):
+    import subprocess
+
+    from clipstudio.render import Segment, render_clip
+
+    src = tmp_path / "silent.mp4"
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                    "color=c=red:size=320x240:rate=10:duration=6", "-c:v", "libx264", "-preset", "ultrafast", str(src)], check=True)
+    out = tmp_path / "out" / "c.mp4"
+    meta = render_clip(cfg, {"id": 0, "local_path": str(src)}, [Segment(1, 4)], [], out, fmt="square", hook="ТЕСТ")
+    assert meta["width"] == 1080 and meta["height"] == 1080
+    assert not probe(out)["has_audio"]

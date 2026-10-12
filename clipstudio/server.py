@@ -8,6 +8,7 @@ from pathlib import Path
 
 import yaml
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -37,6 +38,8 @@ def create_app(cfg: Config | None = None) -> FastAPI:
     db = DB(cfg.data_dir / "clipstudio.db")
     pipe = Pipeline(cfg, db)
     app = FastAPI(title="Clip Studio", version=__version__)
+    # Защита от DNS rebinding: API отвечает только на обращения к localhost
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
     app.state.cfg, app.state.db, app.state.pipe = cfg, db, pipe
 
     # ---------- сериализация ----------
