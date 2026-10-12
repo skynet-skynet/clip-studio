@@ -1,0 +1,21 @@
+# Личные настройки и секреты — никогда не в git
+.env
+config.yaml
+sources.yaml
+secrets/
+proofs/
+
+# Рабочие данные: видео, транскрипты, клипы, база
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Системное
+.DS_Store
+Thumbs.db

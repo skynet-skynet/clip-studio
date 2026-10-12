@@ -1,0 +1,48 @@
+# Белый список источников — единственное, из чего Clip Studio разрешено резать.
+# Скопируйте в sources.yaml. Видео из источника, которого здесь нет, юридический шлюз заблокирует.
+#
+# license:
+#   own            — вы автор
+#   permission     — автор письменно разрешил нарезки (обязательно заполните proof и proof_date)
+#   cc-by          — видео под лицензией Creative Commons Attribution (указание автора обязательно)
+#   public-domain  — общественное достояние
+#
+# monetization_allowed — разрешил ли автор зарабатывать на нарезках. Если false,
+# в описании клипа появится пометка, а пакет монетизации для такого клипа не готовится.
+
+sources:
+  - id: me
+    name: "Мои видео"
+    platform: local
+    license: own
+    proof: "Я автор"
+    monetization_allowed: true
+    attribution: ""
+    rules: ""
+    enabled: true
+
+  - id: example_streamer
+    name: "Пример Стример"
+    platform: vk                 # vk | youtube | local | other
+    channel_url: "https://vkvideo.ru/@example"
+    vk_owner_id: "-123456"       # для VK: id владельца (у сообщества с минусом)
+    youtube_channel_id: ""
+    license: permission
+    proof: "proofs/example_streamer_2026-10-01.png"   # скриншот/ссылка на разрешение
+    proof_date: "2026-10-01"
+    monetization_allowed: false
+    attribution: "Автор: Пример Стример — vkvideo.ru/@example"
+    rules: "Ссылка на канал в описании обязательна. Без политики."
+    enabled: false               # включите, когда получите реальное разрешение
+
+  # Пример для CC BY: отдельные видео разрешены лицензией, канал целиком — нет.
+  # Такие видео добавляются кнопкой «Поиск CC BY» в GUI; шлюз проверит лицензию по API.
+  - id: cc_by_youtube
+    name: "YouTube: видео под CC BY"
+    platform: youtube
+    license: cc-by
+    proof: "Лицензия проверяется по API для каждого видео"
+    monetization_allowed: true
+    attribution: "Источник: {channel} — {url} (CC BY)"
+    rules: "Указывать автора и ссылку в описании и титром"
+    enabled: true

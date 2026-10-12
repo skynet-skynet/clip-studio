@@ -1,0 +1,71 @@
+# Clip Studio — основные настройки.
+# Скопируйте этот файл в config.yaml (start-скрипты делают это сами при первом запуске).
+# Секреты (токены, ключи) сюда НЕ пишите — они живут в файле .env.
+
+app:
+  host: 127.0.0.1          # только локально; не открывайте наружу
+  port: 8765
+  data_dir: data           # видео, транскрипты, клипы, база
+  language: ru
+
+llm:
+  # Как Claude ищет моменты:
+  #   claude_cli — через установленный Claude Code (`claude -p`), тратит лимиты вашей подписки Pro/Max
+  #   api        — через Anthropic API (нужен ANTHROPIC_API_KEY в .env), оплата по токенам
+  #   manual     — приложение готовит промпт, вы вставляете его в claude.ai или Claude Code web и возвращаете JSON
+  mode: claude_cli
+  # Распределение моделей: Sonnet делает массовую работу, Opus — разбор менторами и спорные случаи.
+  model_moments: sonnet            # для claude_cli: sonnet | opus | haiku
+  model_review: opus
+  api_model_moments: claude-sonnet-5-5
+  api_model_review: claude-opus-5-5
+  chunk_minutes: 8                 # длина куска транскрипта на один вызов
+  max_candidates_per_chunk: 6
+  claude_cli_path: claude
+  timeout_s: 600
+
+transcribe:
+  engine: faster_whisper   # faster_whisper | subtitles_only (только готовые .srt/.vtt)
+  model: small             # tiny | base | small | medium | large-v3 (large-v3 — если есть видеокарта NVIDIA)
+  device: auto             # auto | cpu | cuda
+  compute_type: auto       # auto | int8 | float16
+
+clips:
+  min_seconds: 12
+  max_seconds: 60
+  pad_before: 0.35         # запас до первого слова, сек
+  pad_after: 0.6           # запас после последнего слова (реакция, смех), сек
+  format: vertical         # vertical (9:16) | horizontal (16:9) | square (1:1)
+  reframe: blur            # blur — размытый фон | center — обрезка по центру | face — по лицу (нужен opencv)
+  subtitle_style: karaoke  # karaoke — подсветка слов | plain | none
+  hook_title: true         # крупный заголовок-хук первые секунды
+  attribution_overlay: true
+  loudness_lufs: -14
+  crf: 20
+  preset: veryfast
+  font: Montserrat ExtraBold
+
+publish:
+  default_privacy: private # private | unlisted | public — по умолчанию всё уходит приватно/черновиком
+  platforms:
+    vk:
+      enabled: true
+      group_id: ""         # ID сообщества числом без минуса; пусто — на вашу страницу
+      album_id: ""
+      wallpost: false
+    youtube:
+      enabled: false
+      client_secrets: secrets/youtube_client_secret.json
+      token_file: secrets/youtube_token.json
+      category_id: "23"    # 23 = Comedy
+      made_for_kids: false
+    telegram:
+      enabled: false
+      chat_id: ""          # @username канала или -100xxxxxxxxxx
+    pack:
+      enabled: true        # папка «для ручной загрузки» туда, где нет API
+      targets: [rutube, dzen, vk_clips, ok]
+
+discover:
+  min_height: 1080
+  max_results: 25
