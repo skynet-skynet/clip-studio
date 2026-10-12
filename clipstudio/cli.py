@@ -291,7 +291,24 @@ def cmd_wait(args) -> None:
         time.sleep(3)
 
 
+def _fix_console() -> None:
+    """Кириллица в консоли Windows и в собранной программе: вывод всегда в UTF-8."""
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+
+            ctypes.windll.kernel32.SetConsoleOutputCP(65001)
+        except Exception:  # noqa: BLE001
+            pass
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> None:
+    _fix_console()
     ap = argparse.ArgumentParser(prog="clipstudio", description="Clip Studio — нарезки смешных моментов")
     sub = ap.add_subparsers(dest="cmd")
 

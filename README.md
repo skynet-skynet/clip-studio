@@ -16,6 +16,15 @@
 3. Запустите `start.bat` (Windows) или `./start.sh` (macOS, Linux). Откроется `http://127.0.0.1:8765`.
 4. Добавьте источник в «Источники и права», загрузите видео, опишите запрос в «Студии».
 
+## Плагин для Claude Code
+
+```
+/plugin install clip-studio --marketplace skynet-skynet/clip-studio
+```
+
+Скиллы `/clip-studio:clip`, `/clip-studio:watch`, `/clip-studio:mentors`, `/clip-studio:publish` работают через MCP-сервер Clip Studio.
+Подключите его кнопкой «Подключить к Claude Code» в настройках или командой `python -m clipstudio connect-claude`.
+
 ## Через Claude Code
 
 В папке проекта запустите `claude` и пишите `/clip 5 клипов, где он спорит с чатом`. Другие команды: `/add-source`, `/mentor`, `/setup`.

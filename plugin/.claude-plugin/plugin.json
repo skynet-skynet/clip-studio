@@ -1,0 +1,9 @@
+{
+  "name": "clip-studio",
+  "version": "0.2.0",
+  "description": "Нарезка смешных моментов из видео с правами: поиск моментов менторами, просмотр кадров, монтаж и публикация через MCP-сервер Clip Studio",
+  "author": {
+    "name": "skynet-skynet"
+  },
+  "keywords": ["video", "clips", "shorts", "ffmpeg", "mcp"]
+}

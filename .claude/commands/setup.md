@@ -11,4 +11,6 @@ description: Проверить и донастроить Clip Studio на эт�
 3. `python -m clipstudio status` — разбери каждый пункт, что не готово.
 4. Ключи площадок сохраняй только так: `python -m clipstudio secret VK_ACCESS_TOKEN` (ввод скрыт). Сам `.env` не открывай.
    Как получить каждый ключ — в docs/GUIDE.md (разделы «VK», «YouTube», «Telegram»); перескажи нужный раздел своими словами.
-5. Предложи запустить GUI: `python -m clipstudio` (откроется http://127.0.0.1:8765).
+5. Подключи MCP-сервер, чтобы работать с видео прямо из Claude: `python -m clipstudio connect-claude`
+   (с флагом `--desktop` — ещё и в Claude Desktop). После этого перезапусти Claude Code и проверь `/mcp`.
+6. Предложи запустить GUI: `python -m clipstudio` (откроется отдельным окном).

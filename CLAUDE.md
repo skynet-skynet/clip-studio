@@ -26,8 +26,14 @@ python -m clipstudio candidates JOB | approve ID... [--reject] | render JOB
 python -m clipstudio review CLIP                  # разбор менторами (Opus)
 python -m clipstudio publish CLIP --to vk,youtube,telegram,pack [--privacy private]
 python -m clipstudio manual JOB [--answer файл]   # ручной режим LLM
+python -m clipstudio cut VIDEO START END [--title ..] [--hook ..] [--jumpcut]   # ручной клип
+python -m clipstudio export JOB --format edl|csv  # в DaVinci Resolve / Premiere или LosslessCut
+python -m clipstudio mcp                          # MCP-сервер (stdio)
+python -m clipstudio connect-claude [--desktop]   # подключить MCP к Claude Code / Desktop
 python -m clipstudio serve                        # GUI на http://127.0.0.1:8765
 ```
+Если подключён MCP-сервер `clip-studio`, удобнее работать его инструментами: `look` и `clip_preview` дают кадры,
+то есть видео можно проверять глазами.
 На Windows вместо `python` может быть `py`.
 
 ## Как устроено
@@ -35,7 +41,10 @@ python -m clipstudio serve                        # GUI на http://127.0.0.1:87
 - `moments.py` + `prompts/mentors.md` — поиск моментов «редакцией из четырёх менторов» (Sonnet); `prompts/review.md` — разбор готового клипа (Opus)
 - `render.py` + `subtitles.py` — ffmpeg: кадрирование 9:16, субтитры с подсветкой, хук, атрибуция, громкость −14 LUFS
 - `publish/` — VK, YouTube, Telegram и пакет для ручной загрузки (Rutube, Дзен, VK Клипы, OK)
-- `server.py` + `web/` — локальный GUI; `docs/API.md` — контракт API
+- `server.py` + `web/` — локальный GUI (`web/editor.js` — монтажный стол); `docs/API.md` — контракт API
+- `mcp_server.py` — MCP-инструменты; `integrations.py` — регистрация в Claude Code / Desktop; `visual.py` — кадры и волна
+- `export.py` — EDL и CSV; `plugin/` — плагин Claude Code со скиллами; `docs/manual.html` — методичка
+- `packaging/` и `.github/workflows/` — сборка ClipStudio.exe
 - Тесты: `python -m pytest -q`
 
 ## При доработке кода

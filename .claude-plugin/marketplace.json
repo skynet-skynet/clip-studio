@@ -1,0 +1,14 @@
+{
+  "name": "clip-studio",
+  "description": "Clip Studio: нарезка смешных моментов из видео с правами — скиллы для Claude Code",
+  "owner": {
+    "name": "skynet-skynet"
+  },
+  "plugins": [
+    {
+      "name": "clip-studio",
+      "source": "./plugin",
+      "description": "Скиллы нарезки: найти моменты, посмотреть видео глазами, советы менторов, публикация. Работает с MCP-сервером Clip Studio"
+    }
+  ]
+}
