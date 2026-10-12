@@ -194,13 +194,21 @@ def snap(c: Candidate, transcript: dict, cfg: Config, duration: float, min_s: fl
 
     segs = transcript.get("segments", [])
     if end - start < min_s and segs:
-        # расширяем: сначала вперёд (реакция), потом назад (контекст)
-        for s in segs:
-            if s["start"] >= end - 0.05 and end - start < min_s:
-                end = min(s["end"] + pad_a, duration or s["end"] + pad_a)
-        for s in reversed(segs):
-            if s["end"] <= start + 0.05 and end - start < min_s:
+        # Расширяем по одной фразе, чередуя: сначала назад (завязка важнее), потом вперёд (реакция)
+        before = [s for s in segs if s["end"] <= start + pad_b + 0.05]
+        after = [s for s in segs if s["start"] >= end - pad_a - 0.05]
+        back = True
+        while end - start < min_s and (before or after):
+            if back and before:
+                s = before.pop()
                 start = max(0.0, s["start"] - pad_b)
+            elif after:
+                s = after.pop(0)
+                end = min(s["end"] + pad_a, duration or s["end"] + pad_a)
+            elif before:
+                s = before.pop()
+                start = max(0.0, s["start"] - pad_b)
+            back = not back
         if end - start < min_s:
             end = min(start + min_s, duration or start + min_s)
     if end - start > max_s:

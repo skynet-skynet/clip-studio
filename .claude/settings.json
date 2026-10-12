@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m clipstudio *)",
+      "Bash(python3 -m clipstudio *)",
+      "Bash(py -m clipstudio *)",
+      "Bash(python -m pytest *)",
+      "Bash(python3 -m pytest *)",
+      "Read(./docs/**)",
+      "Read(./prompts/**)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./secrets/**)",
+      "Edit(./.env)"
+    ]
+  }
+}

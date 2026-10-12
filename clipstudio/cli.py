@@ -187,6 +187,17 @@ def cmd_manual(args) -> None:
     print(state["prompt"] or "Задача не ждёт ответа")
 
 
+def cmd_secret(args) -> None:
+    import getpass
+
+    from .auth import save_secret
+
+    cfg, _ = _ctx()
+    value = args.value if args.value is not None else getpass.getpass(f"{args.name} (ввод скрыт): ")
+    save_secret(cfg, args.name, value)
+    print(f"{args.name} сохранён в .env")
+
+
 def cmd_wait(args) -> None:
     _, db = _ctx()
     while True:
@@ -269,6 +280,11 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("job", type=int)
     s.add_argument("--answer", help="файл или текст с JSON-ответом Claude")
     s.set_defaults(fn=cmd_manual)
+
+    s = sub.add_parser("secret", help="сохранить ключ в .env (ввод скрыт)")
+    s.add_argument("name", choices=["ANTHROPIC_API_KEY", "VK_ACCESS_TOKEN", "VK_REFRESH_TOKEN", "VK_CLIENT_ID", "YOUTUBE_API_KEY", "TELEGRAM_BOT_TOKEN"])
+    s.add_argument("--value")
+    s.set_defaults(fn=cmd_secret)
 
     s = sub.add_parser("wait", help="ждать завершения задачи")
     s.add_argument("job", type=int)

@@ -1,0 +1,10 @@
+-r requirements.txt
+# YouTube: загрузка и вход
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+# Режим Anthropic API
+anthropic>=0.40
+# Кадрирование по лицу
+opencv-python-headless>=4.8
+# Тесты
+pytest>=8.0

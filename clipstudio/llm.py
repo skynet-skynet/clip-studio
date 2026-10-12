@@ -148,7 +148,7 @@ def manual_prompt(system: str, user: str, schema: dict) -> str:
     return (
         f"{system}\n\n---\n\n{user}\n\n---\n\n"
         "Ответь ОДНИМ блоком JSON без пояснений вокруг, строго по этой JSON Schema:\n"
-        f"```json\n{json.dumps(schema, ensure_ascii=False, indent=1)}\n```"
+        f"```json\n{json.dumps(schema, ensure_ascii=False, separators=(',', ':'))}\n```"
     )
 
 

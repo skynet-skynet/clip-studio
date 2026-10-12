@@ -400,5 +400,6 @@ def create_app(cfg: Config | None = None) -> FastAPI:
 
     # ---------- статика ----------
     app.mount("/media", StaticFiles(directory=str(cfg.data_dir)), name="media")
+    app.mount("/fonts", StaticFiles(directory=str(ROOT / "fonts")), name="fonts")
     app.mount("/", StaticFiles(directory=str(ROOT / "web"), html=True), name="web")
     return app
