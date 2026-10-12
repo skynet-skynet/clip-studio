@@ -46,7 +46,8 @@ DEFAULTS: dict[str, Any] = {
     "publish": {
         "default_privacy": "private",
         "platforms": {
-            "vk": {"enabled": True, "group_id": "", "album_id": "", "wallpost": False},
+            "vk": {"enabled": True, "group_id": "", "album_id": "", "wallpost": False, "api_version": "5.199",
+                   "id_base": "https://id.vk.ru"},
             "youtube": {
                 "enabled": False,
                 "client_secrets": "secrets/youtube_client_secret.json",
@@ -54,7 +55,7 @@ DEFAULTS: dict[str, Any] = {
                 "category_id": "23",
                 "made_for_kids": False,
             },
-            "telegram": {"enabled": False, "chat_id": ""},
+            "telegram": {"enabled": False, "chat_id": "", "review_chat_id": ""},
             "pack": {"enabled": True, "targets": ["rutube", "dzen", "vk_clips", "ok"]},
         },
     },

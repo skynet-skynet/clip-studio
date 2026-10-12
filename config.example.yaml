@@ -51,6 +51,7 @@ publish:
     vk:
       enabled: true
       group_id: ""         # ID сообщества числом без минуса; пусто — на вашу страницу
+      api_version: "5.199"
       album_id: ""
       wallpost: false
     youtube:
@@ -62,6 +63,7 @@ publish:
     telegram:
       enabled: false
       chat_id: ""          # @username канала или -100xxxxxxxxxx
+      review_chat_id: ""   # ваш личный чат с ботом — туда уходят «черновики» на просмотр
     pack:
       enabled: true        # папка «для ручной загрузки» туда, где нет API
       targets: [rutube, dzen, vk_clips, ok]
