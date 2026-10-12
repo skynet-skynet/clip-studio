@@ -145,3 +145,20 @@ Publication:
 - `POST /api/config` — частичное обновление (тот же формат) → `{"config": {...}}`
 - `GET /api/guide` → `{"markdown": "..."}` — содержимое docs/GUIDE.md
 - `GET /api/ledger` → `{"rows": [...]}` — реестр прав (для экспорта и ответов на жалобы)
+
+## Монтажный стол
+
+- `GET /api/videos/{id}/waveform?points=1200` → `{"points": 1200, "duration": 3725.4, "peaks": [0..1, ...]}`
+- `GET /api/videos/{id}/filmstrip?n=40` → JPEG-полоса кадров на всю длину видео
+- `GET /api/videos/{id}/frames?start=&end=&n=6` → JPEG-лист кадров отрезка
+- `POST /api/videos/{id}/transcribe` → запускает распознавание речи в фоне; статус — в `GET /api/videos`
+- `POST /api/videos/{id}/clip` — `{"start", "end", "title", "hook", "format", "reframe", "subtitle_style", "jumpcut"}` → `{"job": Job}` (рендер в фоне)
+- `GET /api/videos/{id}/candidates`, `GET /api/videos/{id}/clips` — кандидаты и клипы этого видео
+- `GET /api/jobs/{id}/export?format=edl|csv` → файл EDL (Resolve, Premiere) или CSV (LosslessCut)
+
+## Подключение к Claude (MCP)
+
+- `GET /api/integrations` → `{"claude_code": {"available", "registered", "message"}, "desktop_config": "путь", "mcp_json": "конфиг"}`
+- `POST /api/integrations/claude` — `{"target": "code" | "desktop" | "ffmpeg"}` → `{"ok": true, "message": "…"}`
+
+Методичка: `GET /help/manual.html`. Документация FastAPI: `/api/docs`.

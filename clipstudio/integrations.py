@@ -21,6 +21,14 @@ def mcp_command() -> list[str]:
     return [sys.executable, "-m", "clipstudio", "mcp"]
 
 
+def mcp_env() -> dict[str, str]:
+    """Окружение MCP-сервера: где лежат данные, и (для запуска из исходников) где лежит пакет."""
+    env = {"CLIPSTUDIO_ROOT": str(ROOT)}
+    if not FROZEN:
+        env["PYTHONPATH"] = str(ROOT)  # чтобы `python -m clipstudio` работал из любой папки
+    return env
+
+
 def _claude(cfg: Config) -> str | None:
     return shutil.which(cfg["llm"].get("claude_cli_path") or "claude")
 
@@ -47,8 +55,9 @@ def connect_claude_code(cfg: Config) -> dict:
     if not cli:
         return {"ok": False, "message": "Claude Code не найден. Установите его (методичка, раздел «Claude Code»)."}
     _run([cli, "mcp", "remove", SERVER_NAME, "--scope", "user"], timeout=30)  # перерегистрация — не ошибка
-    cmd = [cli, "mcp", "add", "--scope", "user", "--transport", "stdio", "--env", f"CLIPSTUDIO_ROOT={ROOT}",
-           SERVER_NAME, "--", *mcp_command()]
+    # --env ставим перед другими флагами: иначе Claude Code примет имя сервера за ещё одну пару KEY=value
+    env_flags = [x for k, v in mcp_env().items() for x in ("--env", f"{k}={v}")]
+    cmd = [cli, "mcp", "add", *env_flags, "--scope", "user", "--transport", "stdio", SERVER_NAME, "--", *mcp_command()]
     res = _run(cmd)
     if res.returncode != 0:
         return {"ok": False, "message": (res.stderr or res.stdout or "ошибка").strip()[-500:]}
@@ -75,7 +84,7 @@ def connect_claude_desktop(cfg: Config) -> dict:
         backup = path.with_suffix(f".backup-{datetime.now():%Y%m%d-%H%M%S}.json")
         shutil.copyfile(path, backup)
     cmd = mcp_command()
-    data.setdefault("mcpServers", {})[SERVER_NAME] = {"command": cmd[0], "args": cmd[1:], "env": {"CLIPSTUDIO_ROOT": str(ROOT)}}
+    data.setdefault("mcpServers", {})[SERVER_NAME] = {"command": cmd[0], "args": cmd[1:], "env": mcp_env()}
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"ok": True, "message": f"Записано в {path}. Перезапустите Claude Desktop."}
@@ -96,5 +105,5 @@ def connect_ffmpeg_mcp(cfg: Config) -> dict:
 
 def mcp_json_snippet() -> str:
     cmd = mcp_command()
-    return json.dumps({"mcpServers": {SERVER_NAME: {"command": cmd[0], "args": cmd[1:], "env": {"CLIPSTUDIO_ROOT": str(ROOT)}}}},
+    return json.dumps({"mcpServers": {SERVER_NAME: {"command": cmd[0], "args": cmd[1:], "env": mcp_env()}}},
                       ensure_ascii=False, indent=2)
